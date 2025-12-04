@@ -1,0 +1,21 @@
+{
+  "watch": [
+    "server.js",
+    "models/",
+    "routes/",
+    "middleware/",
+    "services/",
+    "seeders/"
+  ],
+  "ext": "js,json",
+  "ignore": [
+    "node_modules/",
+    "system.db",
+    "*.log"
+  ],
+  "delay": 1000,
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "verbose": true
+}
