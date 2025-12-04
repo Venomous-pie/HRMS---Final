@@ -226,17 +226,14 @@ const checkOutOptions = computed(() => {
 })
 
 const bookingSortOptions = [
-  { label: 'Booking', value: '' },
   { label: 'Booking Asc', value: 'asc' },
   { label: 'Booking Desc', value: 'desc' },
 ]
 const guestSortOptions = [
-  { label: 'Guest', value: '' },
   { label: 'A-Z', value: 'az' },
   { label: 'Z-A', value: 'za' },
 ]
 const statusOptions = computed(() => [
-  { label: 'Status', value: '' },
   ...reservationStatusOptions.value.map(opt => ({ label: opt, value: opt }))
 ])
 

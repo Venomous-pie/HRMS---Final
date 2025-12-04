@@ -97,7 +97,7 @@
               class="flex items-center bg-gray-50 outline outline-1 outline-gray-200 rounded-full px-3 py-2 pr-8 text-xs text-gray-700 transition-colors cursor-pointer hover:bg-gray-100"
             >
               {{ selectedReservationFilter }}
-              <i class="pi pi-chevron-down absolute right-2 text-gray-300 w-4 h-4"></i>
+              <i class="pi pi-chevron-down absolute pt-[0.2rem] right-2 text-gray-300 w-4 h-4"></i>
             </div>
             <div
               v-if="showReservationDropdown"
@@ -124,7 +124,7 @@
               class="flex items-center bg-gray-50 outline outline-1 outline-gray-200 rounded-full px-3 py-2 pr-8 text-xs text-gray-700 transition-colors cursor-pointer hover:bg-gray-100"
             >
               {{ selectedRoomTypeFilter }}
-              <i class="pi pi-chevron-down absolute right-2 text-gray-300 w-4 h-4"></i>
+              <i class="pi pi-chevron-down absolute pt-[0.2rem] right-2 text-gray-300 w-4 h-4"></i>
             </div>
             <div
               v-if="showRoomTypeDropdown"
@@ -151,7 +151,7 @@
               class="flex items-center bg-gray-50 outline outline-1 outline-gray-200 rounded-full px-3 py-2 pr-8 text-xs text-gray-700 transition-colors cursor-pointer hover:bg-gray-100"
             >
               {{ selectedBookingFilter }}
-              <i class="pi pi-chevron-down absolute right-2 text-gray-300 w-4 h-4"></i>
+              <i class="pi pi-chevron-down absolute pt-[0.2rem] right-2 text-gray-300 w-4 h-4"></i>
             </div>
             <div
               v-if="showBookingDropdown"
