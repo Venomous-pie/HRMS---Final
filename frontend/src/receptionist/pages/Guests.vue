@@ -1,40 +1,57 @@
 <template>
-  <div class="p-6">
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-900">Guest Management</h1>
-      <p class="text-gray-600 mt-2">Manage guest information and profiles</p>
+  <div class="px-4">
+    <div class="mb-4">
+      <h2 class="font-bold text-gray-700">Guest Management</h2>
+
     </div>
 
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-      <div class="text-center">
-        <div
-          class="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4"
-        >
-          <i class="pi pi-users text-blue-600 text-2xl"></i>
-        </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">Guest Management</h3>
-        <p class="text-gray-500 mb-4">
-          This page will contain guest management features including:
-        </p>
-        <ul class="text-left text-gray-600 space-y-2 max-w-md mx-auto">
-          <li>• Guest profiles and contact information</li>
-          <li>• Guest history and preferences</li>
-          <li>• Loyalty program management</li>
-          <li>• Guest communication tools</li>
-          <li>• Check-in/check-out records</li>
-        </ul>
-        <div class="mt-6">
-          <span
-            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800"
-          >
-            🚧 Coming Soon
-          </span>
-        </div>
-      </div>
+    <div class="overflow-x-auto rounded shadow border border-gray-200 mt-4">
+      <table class="min-w-full bg-white border border-separate border-spacing-0">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="py-2 px-4 text-xs font-semibold text-left text-gray-600">Name</th>
+          <th class="py-2 px-4 text-xs font-semibold text-left text-gray-600">Email</th>
+          <th class="py-2 px-4 text-xs font-semibold text-left text-gray-600">Phone</th>
+          <th class="py-2 px-4 text-xs font-semibold text-left text-gray-600">Address</th>
+          <th class="py-2 px-4 text-xs font-semibold text-left text-gray-600">ID Document</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-if="loading">
+          <td colspan="5" class="py-4 px-4 text-center text-xs text-gray-400">Loading guests...</td>
+        </tr>
+        <tr v-else-if="error">
+          <td colspan="5" class="py-4 px-4 text-center text-xs text-red-500">{{ error }}</td>
+        </tr>
+        <tr v-else-if="guests.length === 0">
+          <td colspan="5" class="py-4 px-4 text-center text-xs text-gray-400">No guests found.</td>
+        </tr>
+        <tr v-for="guest in guests" :key="guest.id">
+          <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">
+            {{ guest.firstName }}
+            <span v-if="guest.middleName">{{ guest.middleName }}</span>
+            {{ guest.lastName }}
+          </td>
+          <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">{{ guest.email }}</td>
+          <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">{{ guest.phone }}</td>
+          <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">{{ guest.address }}</td>
+          <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">{{ guest.idDocument }}</td>
+        </tr>
+      </tbody>
+      </table>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// Guest management functionality will be implemented here
+import { onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useGuestStore } from '@/stores/guest'
+
+const guestStore = useGuestStore()
+const { guests, loading, error } = storeToRefs(guestStore)
+
+onMounted(() => {
+  guestStore.fetchGuests()
+})
 </script>

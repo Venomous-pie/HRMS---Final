@@ -13,7 +13,7 @@
     </div>
 
     <div class="overflow-x-auto rounded shadow border border-gray-200">
-      <table class="min-w-full bg-white">
+      <table class="min-w-full bg-white border border-separate border-spacing-0">
         <thead class="bg-gray-100">
           <tr>
             <th class="py-2 px-4 text-xs font-semibold text-left text-gray-600">Booking</th>
@@ -30,18 +30,22 @@
         </thead>
         <tbody>
           <tr v-for="reservation in filteredReservations" :key="reservation.bookingNumber || reservation.id">
-            <td class="py-2 px-4 text-xs text-gray-700">{{ reservation.bookingNumber || reservation.id }}</td>
-            <td class="py-2 px-4 text-xs text-gray-700">{{ reservation.roomNumber || reservation.room }}</td>
-            <td class="py-2 px-4 text-xs text-gray-700">{{ reservation.guestName || reservation.guest }}</td>
-            <td class="py-2 px-4 text-xs text-gray-700">{{ reservation.checkIn || reservation.checkInDate }}</td>
-            <td class="py-2 px-4 text-xs text-gray-700">{{ reservation.checkOut || reservation.checkOutDate }}</td>
-            <td class="py-2 px-4 text-xs text-gray-700">
-              <div class="px-2 py-1 text-xs text-gray-600">0</div>
+            <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">{{ reservation.bookingNumber
+              || reservation.id }}</td>
+            <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">{{ reservation.roomNumber ||
+              reservation.room }}</td>
+            <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">{{ reservation.guestName ||
+              reservation.guest }}</td>
+            <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">{{ reservation.checkIn ||
+              reservation.checkInDate }}</td>
+            <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">{{ reservation.checkOut ||
+              reservation.checkOutDate }}</td>
+            <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50"> 0 </td>
+            <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">₱{{ reservation.amount }}</td>
+            <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">₱{{ reservation.balance }}
             </td>
-            <td class="py-2 px-4 text-xs text-gray-700">₱{{ reservation.amount }}</td>
-            <td class="py-2 px-4 text-xs text-gray-700">₱{{ reservation.balance }}</td>
-            <td class="py-2 px-4 text-xs text-gray-700">{{ reservation.source }}</td>
-            <td class="py-2 px-4 text-xs">
+            <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">{{ reservation.source }}</td>
+            <td class="py-2 px-4 text-xs outline outline-1 outline-gray-50">
               <span
                 :class="getReservationStatusColor(reservation) + ' px-2 py-1 rounded-full border text-xs capitalize'">
                 {{ reservation.status }}
@@ -55,14 +59,8 @@
       </table>
     </div>
   </div>
-    <AddReservationModal
-      :is-open="showAddReservationModal"
-      :prefilled-data="prefilledReservationData"
-      :mode="currentMode"
-      @close="handleModalClose"
-      @success="handleReservationSuccess"
-      @backToDetails="handleBackToDetailsFromEdit"
-    />
+  <AddReservationModal :is-open="showAddReservationModal" :prefilled-data="prefilledReservationData" :mode="currentMode"
+    @close="handleModalClose" @success="handleReservationSuccess" @backToDetails="handleBackToDetailsFromEdit" />
 </template>
 
 <script setup lang="ts">
@@ -137,4 +135,3 @@ function handleOrder(reservation: any) {
   // Placeholder for future ordering system
 }
 </script>
-
