@@ -9,7 +9,7 @@
 
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-2 w-full">
-        <Searchbar placeholder="Search reservations..." icon="pi pi-search" :outline="false"
+        <Searchbar placeholder="Search reservations..." icon="pi pi-search" :outline="true"
           @search="handleReservationSearch" width="20rem" />
         <div class="flex items-center gap-4 ml-auto">
           <!-- Clear Filters Button -->
@@ -91,7 +91,7 @@
               <i class="pi pi-chevron-down right-2 pt-[0.2rem] text-gray-300 w-4 h-4"></i>
             </div>
             <div v-if="showStatusDropdown"
-              class="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 w-max min-w-full">
+              class="absolute top-full left--5 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 w-max min-w-full">
               <div v-for="option in statusOptions" :key="option.value" @click="selectStatus(option)"
                 class="px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer first:rounded-t-lg last:rounded-b-lg"
                 :class="{ 'bg-green-50 text-green-700': filters.status === option.value }">
@@ -104,16 +104,16 @@
     </div>
   </div>
 
-  <div class="overflow-x-auto rounded shadow border border-gray-200 mx-4">
-    <table class="min-w-full bg-white border border-separate border-spacing-0">
+  <div class="overflow-x-auto rounded shadow border border-gray-200 mx-6">
+    <table class="min-w-full bg-white border border-separate border-spacing-0 ">
       <thead class="bg-gray-100">
         <tr>
           <th class="py-2 px-4 text-xs font-semibold text-left text-gray-600">Booking</th>
           <th class="py-2 px-4 text-xs font-semibold text-left text-gray-600">Room</th>
           <th class="py-2 px-4 text-xs font-semibold text-left text-gray-600">Guest</th>
+          <th class="py-2 px-4 text-xs font-semibold text-left text-gray-600">Notes/Tags</th>
           <th class="py-2 px-4 text-xs font-semibold text-left text-gray-600">Check-in</th>
           <th class="py-2 px-4 text-xs font-semibold text-left text-gray-600">Check-out</th>
-          <th class="py-2 px-4 text-xs font-semibold text-left text-gray-600">Orders</th>
           <th class="py-2 px-4 text-xs font-semibold text-left text-gray-600">Amount</th>
           <th class="py-2 px-4 text-xs font-semibold text-left text-gray-600">Balance</th>
           <th class="py-2 px-4 text-xs font-semibold text-left text-gray-600">Source</th>
@@ -126,13 +126,14 @@
             || reservation.id }}</td>
           <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">{{ reservation.roomNumber ||
             reservation.room }}</td>
-          <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">{{ reservation.guestName ||
-            reservation.guest }}</td>
+          <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">{{ reservation.Guest ?
+            reservation.Guest.firstName + ' ' + (reservation.Guest.middleName || '') + ' ' +
+            reservation.Guest.lastName : (reservation.guestName || reservation.guest) }}</td>
+          <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">{{ reservation.guestObj?.notes || '—' }}</td>
           <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">{{ reservation.checkIn ||
             reservation.checkInDate }}</td>
           <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">{{ reservation.checkOut ||
             reservation.checkOutDate }}</td>
-          <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50"> 0 </td>
           <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">₱{{ reservation.amount }}</td>
           <td class="py-2 px-4 text-xs text-gray-700 outline outline-1 outline-gray-50">₱{{ reservation.balance }}
           </td>
@@ -154,14 +155,13 @@
 </template>
 
 <script setup lang="ts">
-
 import AddReservationModal from '@/receptionist/components/frontdesk/AddReservationModal.vue'
-
-import { ref, computed, onMounted } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useHotelDataStore } from '@/stores/hotelData'
 import Searchbar from '@/components/Searchbar.vue'
 import Custombutton from '@/components/Custombutton.vue'
+import { useGuestStore } from '@/stores/guest'
+import { storeToRefs } from 'pinia'
+import { ref, computed, onMounted } from 'vue'
+import { useHotelDataStore } from '@/stores/hotelData'
 import { useFilterOptions } from '@/composables/useFilterOptions'
 
 // Dropdown state and options for new dropdown filters
@@ -354,6 +354,7 @@ const filteredReservations = computed(() => {
       return String(numB).localeCompare(String(numA), undefined, { numeric: true })
     })
   }
+  // guestObj is now provided directly from backend
   return result
 })
 
@@ -384,6 +385,10 @@ function onClickOutsideDropdowns(e: MouseEvent) {
 onMounted(async () => {
   if (!reservations.value.length) {
     await hotelDataStore.fetchReservations()
+  }
+  const guestStore = useGuestStore()
+  if (!guestStore.guests.length) {
+    await guestStore.fetchGuests()
   }
 })
 

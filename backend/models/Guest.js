@@ -14,5 +14,11 @@ export default (sequelize) => {
     phone: { type: DataTypes.STRING, allowNull: false },
     address: { type: DataTypes.STRING, allowNull: false },
     idDocument: { type: DataTypes.STRING, allowNull: false },
+    nationality: { type: DataTypes.STRING, allowNull: true },
+    totalStays: { type: DataTypes.INTEGER, allowNull: true },
+    lastVisited: { type: DataTypes.DATE, allowNull: true },
+    totalSpent: { type: DataTypes.INTEGER, allowNull: true },
+    notes: { type: DataTypes.STRING, allowNull: true },
+    orderCount: { type: DataTypes.INTEGER, allowNull: true },
   });
 };

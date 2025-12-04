@@ -127,7 +127,6 @@
             :label="isLoading ? 'Signing in...' : 'Sign In'"
             bg-color="bg-blue-600"
             hover-bg-color="hover:bg-blue-700"
-            text-color="white"
             font-size="0.875rem"
             padding="0.75rem 1.5rem"
             width="100%"

@@ -31,9 +31,16 @@ export interface Guest {
   phone: string
   address: string
   idDocument: string
+  nationality?: string
+  totalStays?: number
+  lastVisited?: string | Date
+  totalSpent?: number
+  notes?: string
+  orderCount?: number
 }
 
 export interface Reservation {
+  guestObj?: Guest
   id?: string
   room: string
   guest: string

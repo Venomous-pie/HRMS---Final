@@ -722,6 +722,30 @@ app.get("/api/reservations", authenticateToken, requireAnyPermission(['RESERVATI
       orders: 0, // Default orders
       bookingDate: reservation.createdAt,
       notes: reservation.specialRequest || "",
+      guestObj: reservation.Guest ? {
+        id: reservation.Guest.id,
+        firstName: reservation.Guest.firstName,
+        middleName: reservation.Guest.middleName,
+        lastName: reservation.Guest.lastName,
+        email: reservation.Guest.email,
+        phone: reservation.Guest.phone,
+        address: reservation.Guest.address,
+        idDocument: reservation.Guest.idDocument,
+        nationality: reservation.Guest.nationality,
+        totalStays: reservation.Guest.totalStays,
+        lastVisited: reservation.Guest.lastVisited,
+        totalSpent: reservation.Guest.totalSpent,
+        notes: reservation.Guest.notes,
+        orderCount: reservation.Guest.orderCount,
+        // Add any additional fields from Guest model
+        createdAt: reservation.Guest.createdAt,
+        updatedAt: reservation.Guest.updatedAt,
+        type: reservation.Guest.type,
+        tags: reservation.Guest.tags,
+        countryCode: reservation.Guest.countryCode,
+        verified: reservation.Guest.verified,
+        idVerified: reservation.Guest.idVerified,
+      } : null,
     }));
 
     return res.json(transformedReservations);

@@ -37,34 +37,60 @@ const scrambledPlaces = [
 // Smart guest generation function
 function generateGuests(count = 250) {
   const guests = [];
-  
+  const nationalities = [
+    'Filipino', 'American', 'Japanese', 'Korean', 'Chinese', 'Australian', 'British', 'Canadian', 'German', 'French',
+    'Singaporean', 'Malaysian', 'Indonesian', 'Vietnamese', 'Thai', 'Indian', 'Spanish', 'Italian', 'Dutch', 'Swedish'
+  ];
+  const notesList = [
+    'VIP guest', 'Prefers quiet rooms', 'Allergic to peanuts', 'Frequent late checkouts', 'Requires airport pickup',
+    'Special dietary needs', 'Loyalty member', 'Complained about wifi', 'Left positive review', 'Requested extra pillows',
+    'Group traveler', 'Corporate account', 'Family with kids', 'Solo traveler', 'Early riser', 'Night owl', 'Repeat guest',
+    'Has pet', 'Smoker', 'Non-smoker'
+  ];
   for (let i = 0; i < count; i++) {
     // Combinatorial name selection (creates unique combinations)
     const firstName = firstNames[i % firstNames.length];
     const lastName = lastNames[Math.floor(i / firstNames.length) % lastNames.length];
-    
     // Generate random ID with realistic format
     const idNumber = `ID-${String(Math.floor(Math.random() * 900000000) + 100000000)}`;
-    
     // Generate random phone number
     const phoneNumber = `+639${Math.floor(Math.random() * 900000000) + 100000000}`;
-    
     // Select scrambled place
     const address = scrambledPlaces[i % scrambledPlaces.length];
-    
     // Generate email
     const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}${i}@email.com`;
-    
+    // Nationality
+    const nationality = nationalities[Math.floor(Math.random() * nationalities.length)];
+    // Total stays (1-10)
+    const totalStays = Math.floor(Math.random() * 10) + 1;
+    // Last visited (random date in past 2 years)
+    const now = new Date();
+    const pastDays = Math.floor(Math.random() * 730); // up to 2 years
+    const lastVisited = new Date(now.getTime() - pastDays * 24 * 60 * 60 * 1000);
+    // Total spent (₱2,000 - ₱250,000)
+    const totalSpent = (Math.floor(Math.random() * 249) + 2) * 1000;
+    // Random notes/tags for some guests
+    let notes = '';
+    if (Math.random() < 0.35) {
+      notes = notesList[Math.floor(Math.random() * notesList.length)];
+    }
+    // Random order count (1-7)
+    const orderCount = Math.floor(Math.random() * 7) + 1;
     guests.push({
       firstName,
       lastName,
       email,
       phone: phoneNumber,
       address,
-      idDocument: idNumber
+      idDocument: idNumber,
+      nationality,
+      totalStays,
+      lastVisited,
+      totalSpent,
+      notes,
+      orderCount
     });
   }
-  
   return guests;
 }
 

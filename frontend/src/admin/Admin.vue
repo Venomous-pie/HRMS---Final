@@ -117,7 +117,6 @@
               :label="isLoading ? 'Signing in...' : 'Sign In'"
               bg-color="bg-green-600"
               hover-bg-color="hover:bg-green-700"
-              text-color="text-white"
               width="100%"
               height="3rem"
               :disabled="isLoading || !credentials.username || !credentials.password"
