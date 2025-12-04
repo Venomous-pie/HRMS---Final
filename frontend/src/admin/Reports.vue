@@ -39,7 +39,6 @@
             label="Export Report" 
             bg-color="bg-blue-600"
             hover-bg-color="hover:bg-blue-700"
-            text-color="text-white"
             :hover="true"
             @click="exportReport"
           />

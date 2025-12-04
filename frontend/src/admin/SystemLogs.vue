@@ -46,7 +46,6 @@
             label="Export Logs" 
             bg-color="bg-purple-600"
             hover-bg-color="hover:bg-purple-700"
-            text-color="text-white"
             :hover="true"
             @click="exportLogs"
           />
@@ -59,7 +58,15 @@
       <!-- Log Statistics -->
       <div class="mb-8">
         <h2 class="text-xl font-bold text-gray-900 mb-6">Log Overview</h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div v-if="loading" class="flex items-center justify-center py-8">
+          <i class="pi pi-spin pi-spinner text-2xl text-blue-500 mr-2"></i>
+          <span class="text-gray-500 text-sm">Loading log statistics...</span>
+        </div>
+        <div v-else-if="error" class="flex items-center justify-center py-8">
+          <i class="pi pi-exclamation-triangle text-xl text-red-500 mr-2"></i>
+          <span class="text-red-500 text-sm">{{ error }}</span>
+        </div>
+        <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-8">
           <div class="text-center">
             <div class="flex items-center justify-center gap-2 mb-2">
               <i class="pi pi-file-edit text-blue-600 text-lg"></i>
@@ -106,49 +113,58 @@
           </div>
         </div>
         
-        <div class="space-y-2 max-h-96 overflow-y-auto">
-          <div 
-            v-for="log in filteredLogs" 
-            :key="log.id"
-            class="flex items-start gap-3 p-3 border border-gray-200 hover:border-gray-400 transition-colors"
-            :class="getLogLevelClass(log.level)"
-          >
-            <div class="flex-shrink-0 mt-1">
-              <div 
-                class="w-2 h-2 rounded-full"
-                :class="getLogDotClass(log.level)"
-              ></div>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-1">
-                <span class="text-xs font-medium text-gray-900">{{ log.timestamp }}</span>
-                <span 
-                  class="px-2 py-1 text-xs font-medium rounded-full"
-                  :class="getLogBadgeClass(log.level)"
+        <div v-if="loading" class="flex items-center justify-center py-16">
+          <i class="pi pi-spin pi-spinner text-2xl text-blue-500 mr-2"></i>
+          <span class="text-gray-500 text-sm">Loading logs...</span>
+        </div>
+        <div v-else-if="error" class="flex items-center justify-center py-16">
+          <i class="pi pi-exclamation-triangle text-xl text-red-500 mr-2"></i>
+          <span class="text-red-500 text-sm">{{ error }}</span>
+        </div>
+        <div v-else>
+          <div class="space-y-2 max-h-96 overflow-y-auto">
+            <div 
+              v-for="log in filteredLogs" 
+              :key="log.id"
+              class="flex items-start gap-3 p-3 border border-gray-200 hover:border-gray-400 transition-colors"
+              :class="getLogLevelClass(log.level)"
+            >
+              <div class="flex-shrink-0 mt-1">
+                <div 
+                  class="w-2 h-2 rounded-full"
+                  :class="getLogDotClass(log.level)"
+                ></div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-xs font-medium text-gray-900">{{ log.timestamp }}</span>
+                  <span 
+                    class="px-2 py-1 text-xs font-medium rounded-full"
+                    :class="getLogBadgeClass(log.level)"
+                  >
+                    {{ log.level.toUpperCase() }}
+                  </span>
+                  <span class="text-xs text-gray-600">{{ log.source }}</span>
+                </div>
+                <p class="text-sm text-gray-900 mb-1">{{ log.message }}</p>
+                <div v-if="log.details" class="text-xs text-gray-600 font-mono bg-gray-50 p-2 rounded border">
+                  {{ log.details }}
+                </div>
+              </div>
+              <div class="flex-shrink-0">
+                <button 
+                  class="text-xs text-gray-400 hover:text-gray-600"
+                  @click="viewLogDetails(log)"
                 >
-                  {{ log.level.toUpperCase() }}
-                </span>
-                <span class="text-xs text-gray-600">{{ log.source }}</span>
+                  <i class="pi pi-eye"></i>
+                </button>
               </div>
-              <p class="text-sm text-gray-900 mb-1">{{ log.message }}</p>
-              <div v-if="log.details" class="text-xs text-gray-600 font-mono bg-gray-50 p-2 rounded border">
-                {{ log.details }}
-              </div>
-            </div>
-            <div class="flex-shrink-0">
-              <button 
-                class="text-xs text-gray-400 hover:text-gray-600"
-                @click="viewLogDetails(log)"
-              >
-                <i class="pi pi-eye"></i>
-              </button>
             </div>
           </div>
-        </div>
-        
-        <div v-if="filteredLogs.length === 0" class="text-center py-8">
-          <i class="pi pi-file-edit text-gray-300 text-4xl mb-4"></i>
-          <p class="text-gray-500">No logs found matching your criteria</p>
+          <div v-if="filteredLogs.length === 0" class="text-center py-8">
+            <i class="pi pi-file-edit text-gray-300 text-4xl mb-4"></i>
+            <p class="text-gray-500">No logs found matching your criteria</p>
+          </div>
         </div>
       </div>
     </div>
@@ -223,7 +239,7 @@ const fetchLogs = async () => {
     
     const response = await fetch('http://localhost:3000/api/admin/logs', {
       cache: 'no-cache',
-      headers
+      headers: { ...headers }
     })
     
     if (response.ok) {

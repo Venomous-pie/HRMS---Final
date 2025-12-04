@@ -15,7 +15,6 @@
             label="Add User" 
             bg-color="bg-green-600"
             hover-bg-color="hover:bg-green-700"
-            text-color="text-white"
             :hover="true"
             @click="showCreateModal = true"
           />
@@ -35,10 +34,10 @@
     <div class="px-6 py-2 overflow-y-auto h-full">
         
         <!-- Error Alert -->
-        <div v-if="error" class="mb-8 p-5 bg-red-50 border border-red-200 rounded-2xl shadow-sm">
-          <div class="flex items-center gap-4">
-            <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <i class="pi pi-exclamation-triangle text-red-600 text-lg"></i>
+        <div v-if="error" class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-red-100 rounded flex items-center justify-center flex-shrink-0">
+              <i class="pi pi-exclamation-triangle text-red-600"></i>
             </div>
             <div>
               <p class="text-red-800 text-sm font-semibold">Error</p>
@@ -48,107 +47,101 @@
         </div>
 
         <!-- Users Table -->
-        <div class="bg-white rounded-2xl shadow-lg border border-gray-100">
-          <div class="px-8 py-6 border-b border-gray-200">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center">
-                <i class="pi pi-users text-blue-600 text-lg"></i>
+        <div class="bg-white rounded-lg shadow border border-gray-200">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
+                <i class="pi pi-users text-blue-600 text-sm"></i>
               </div>
               <div>
-                <h2 class="text-xl font-bold text-gray-900">Staff Accounts</h2>
-                <p class="text-sm text-gray-600">Manage user accounts and permissions</p>
+                <h2 class="text-lg font-semibold text-gray-900">Staff Accounts</h2>
               </div>
             </div>
           </div>
           
           <!-- Loading State -->
           <div v-if="loading && users.length === 0" class="p-12 text-center">
-            <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <i class="pi pi-spin pi-spinner text-2xl text-gray-400"></i>
+            <div class="w-12 h-12 bg-gray-100 rounded flex items-center justify-center mx-auto mb-4">
+              <i class="pi pi-spin pi-spinner text-xl text-gray-400"></i>
             </div>
             <p class="text-gray-600 font-medium">Loading users...</p>
-            <p class="text-gray-500 text-sm mt-1">Please wait while we fetch the staff accounts</p>
           </div>
 
           <!-- Users List -->
           <div v-else-if="users.length > 0" class="overflow-x-auto">
             <table class="min-w-full">
-              <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+              <thead class="bg-gray-50">
                 <tr>
-                  <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">User</th>
-                  <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Role</th>
-                  <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Department</th>
-                  <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
-                  <th class="px-8 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Last Login</th>
-                  <th class="px-8 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">User</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Department</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Last Login</th>
+                  <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody class="bg-white divide-y divide-gray-100">
-                <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50/50 transition-colors">
-                  <td class="px-8 py-6 whitespace-nowrap">
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50 transition-colors">
+                  <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center">
-                      <div class="flex-shrink-0 h-12 w-12">
-                        <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center shadow-sm">
-                          <i class="pi pi-user text-gray-600 text-lg"></i>
+                      <div class="flex-shrink-0 h-10 w-10">
+                        <div class="h-10 w-10 rounded bg-gray-200 flex items-center justify-center">
+                          <i class="pi pi-user text-gray-600"></i>
                         </div>
                       </div>
-                      <div class="ml-4">
-                        <div class="text-base font-semibold text-gray-900 flex items-center gap-3">
+                      <div class="ml-3">
+                        <div class="text-sm font-semibold text-gray-900 flex items-center gap-2">
                           {{ user.firstName }} {{ user.lastName }}
-                          <span v-if="isCurrentUser(user)" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300">
-                            <i class="pi pi-star-fill mr-1"></i>
+                          <span v-if="isCurrentUser(user)" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800">
                             You
                           </span>
                         </div>
-                        <div class="text-sm text-gray-600 mt-1">{{ user.email }}</div>
-                        <div class="text-xs text-gray-500 font-mono">@{{ user.username }}</div>
+                        <div class="text-xs text-gray-600">{{ user.email }}</div>
                       </div>
                     </div>
                   </td>
-                  <td class="px-8 py-6 whitespace-nowrap">
-                    <span class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold shadow-sm"
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium"
                           :class="getRoleBadgeClass(user.role)">
-                      <i class="pi pi-shield mr-2"></i>
                       {{ capitalizeRole(user.role) }}
                     </span>
                   </td>
-                  <td class="px-8 py-6 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {{ user.department || '-' }}
                   </td>
-                  <td class="px-8 py-6 whitespace-nowrap">
-                    <span class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-semibold shadow-sm"
-                          :class="user.isActive ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'">
-                      <i :class="user.isActive ? 'pi pi-check-circle' : 'pi pi-times-circle'" class="mr-2"></i>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium"
+                          :class="user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
                       {{ user.isActive ? 'Active' : 'Inactive' }}
                     </span>
                   </td>
-                  <td class="px-8 py-6 whitespace-nowrap text-sm text-gray-600 font-medium">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     {{ formatLastLogin(user.lastLogin) }}
                   </td>
-                  <td class="px-8 py-6 whitespace-nowrap text-right">
-                    <div class="flex items-center justify-end gap-3">
+                  <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <div class="flex items-center justify-end gap-2">
                       <button
                         @click="editUser(user)"
-                        class="w-10 h-10 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-xl transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md"
+                        class="w-8 h-8 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded transition-colors flex items-center justify-center"
                         title="Edit User"
                       >
-                        <i class="pi pi-pencil text-sm"></i>
+                        <i class="pi pi-pencil text-xs"></i>
                       </button>
                       <button
                         @click="resetPassword(user)"
-                        class="w-10 h-10 bg-orange-100 hover:bg-orange-200 text-orange-600 rounded-xl transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md"
+                        class="w-8 h-8 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded transition-colors flex items-center justify-center"
                         title="Reset Password"
                       >
-                        <i class="pi pi-key text-sm"></i>
+                        <i class="pi pi-key text-xs"></i>
                       </button>
                       <button
                         @click="toggleUserStatus(user)"
-                        :class="user.isActive ? 'bg-red-100 hover:bg-red-200 text-red-600' : 'bg-green-100 hover:bg-green-200 text-green-600'"
+                        :class="user.isActive ? 'bg-red-50 hover:bg-red-100 text-red-600' : 'bg-green-50 hover:bg-green-100 text-green-600'"
                         :disabled="isCurrentUser(user) && user.isActive"
-                        class="w-10 h-10 rounded-xl transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="w-8 h-8 rounded transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                         :title="getToggleButtonTitle(user)"
                       >
-                        <i :class="user.isActive ? 'pi pi-ban' : 'pi pi-check-circle'" class="text-sm"></i>
+                        <i :class="user.isActive ? 'pi pi-ban' : 'pi pi-check-circle'" class="text-xs"></i>
                       </button>
                     </div>
                   </td>
@@ -158,15 +151,15 @@
           </div>
 
           <!-- Empty State -->
-          <div v-else class="p-16 text-center">
-            <div class="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <i class="pi pi-users text-4xl text-gray-400"></i>
+          <div v-else class="p-12 text-center">
+            <div class="w-16 h-16 bg-gray-100 rounded flex items-center justify-center mx-auto mb-4">
+              <i class="pi pi-users text-3xl text-gray-400"></i>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Staff Accounts Found</h3>
-            <p class="text-gray-600 mb-6 max-w-md mx-auto">Get started by creating your first staff account to manage hotel operations.</p>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">No Staff Accounts Found</h3>
+            <p class="text-gray-600 text-sm mb-4">Get started by creating your first staff account</p>
             <button
               @click="showCreateModal = true"
-              class="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg"
+              class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded text-sm font-medium transition-colors"
             >
               <i class="pi pi-plus mr-2"></i>
               Create First User
@@ -176,57 +169,57 @@
       </div>
 
     <!-- Create User Modal -->
-    <div v-if="showCreateModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-gray-200">
-        <div class="px-8 py-6 border-b border-gray-200">
+    <div v-if="showCreateModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-gray-200">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-              <i class="pi pi-user-plus text-green-600 text-lg"></i>
+            <div class="w-8 h-8 bg-green-100 rounded flex items-center justify-center">
+              <i class="pi pi-user-plus text-green-600"></i>
             </div>
             <div>
-              <h3 class="text-xl font-bold text-gray-900">Create New User</h3>
-              <p class="text-sm text-gray-600">Add a new staff member to the system</p>
+              <h3 class="text-lg font-semibold text-gray-900">Create New User</h3>
+              <p class="text-xs text-gray-600">Add a new staff member to the system</p>
             </div>
           </div>
         </div>
         
-        <form @submit.prevent="createUser" class="p-8 space-y-6">
-          <div class="grid grid-cols-2 gap-6">
+        <form @submit.prevent="createUser" class="p-6 space-y-4">
+          <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">First Name</label>
+              <label class="block text-xs font-semibold text-gray-700 mb-1.5">First Name</label>
               <input v-model="newUser.firstName" type="text" required
-                     class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white shadow-sm">
+                     class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all">
             </div>
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">Last Name</label>
+              <label class="block text-xs font-semibold text-gray-700 mb-1.5">Last Name</label>
               <input v-model="newUser.lastName" type="text" required
-                     class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white shadow-sm">
+                     class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all">
             </div>
           </div>
           
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Username</label>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Username</label>
             <input v-model="newUser.username" type="text" required
-                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white shadow-sm">
+                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all">
           </div>
           
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Email Address</label>
             <input v-model="newUser.email" type="email" required
-                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white shadow-sm">
+                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all">
           </div>
           
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Password</label>
             <input v-model="newUser.password" type="password" required
-                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white shadow-sm">
+                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all">
           </div>
           
-          <div class="grid grid-cols-2 gap-6">
+          <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">Role</label>
+              <label class="block text-xs font-semibold text-gray-700 mb-1.5">Role</label>
               <select v-model="newUser.role" required
-                      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white shadow-sm">
+                      class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all">
                 <option value="">Select Role</option>
                 <option value="admin">Admin</option>
                 <option value="manager">Manager</option>
@@ -237,30 +230,30 @@
             </div>
             
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">Department</label>
+              <label class="block text-xs font-semibold text-gray-700 mb-1.5">Department</label>
               <input v-model="newUser.department" type="text"
-                     class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white shadow-sm">
+                     class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all">
             </div>
           </div>
           
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
+            <label class="block text-xs font-semibold text-gray-700 mb-1.5">Phone Number</label>
             <input v-model="newUser.phone" type="tel"
-                   class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-white shadow-sm">
+                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all">
           </div>
           
-          <div class="flex justify-end gap-4 pt-6 border-t border-gray-200">
+          <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <button
               type="button"
               @click="cancelCreate"
-              class="px-6 py-3 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all duration-200"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               :disabled="creating"
-              class="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 flex items-center gap-2"
+              class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               <i v-if="creating" class="pi pi-spin pi-spinner"></i>
               <i v-else class="pi pi-plus"></i>

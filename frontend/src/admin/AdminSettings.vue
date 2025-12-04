@@ -15,7 +15,6 @@
             label="Save Changes" 
             bg-color="bg-green-600"
             hover-bg-color="hover:bg-green-700"
-            text-color="text-white"
             :hover="true"
             @click="saveSettings"
           />

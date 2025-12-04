@@ -39,7 +39,6 @@
             label="Add Room" 
             bg-color="bg-green-600"
             hover-bg-color="hover:bg-green-700"
-            text-color="text-white"
             :hover="true"
             @click="showAddRoomModal = true"
           />
@@ -283,7 +282,7 @@ const fetchRooms = async () => {
     
     const response = await fetch('http://localhost:3000/api/admin/rooms/data', {
       cache: 'no-cache',
-      headers
+      headers: { ...headers }
     })
     
     if (response.ok) {
