@@ -6,8 +6,55 @@ export const TIME_GANTT_LAYOUT = {
 } as const
 
 export interface TimeSlot {
-  time: string // Format: "HH:mm"
-  displayTime: string // Format: "06:00" or "07:59"
+  time: string // Format: "HH:mm" (24-hour for internal comparison)
+  displayTime: string // Format: "6:00 AM" or "7:59 AM" (12-hour for display)
+}
+
+/**
+ * Converts 12-hour format to 24-hour format for comparison
+ * Input: "2:00 PM" -> Output: "14:00"
+ * Input: "9:30 AM" -> Output: "09:30"
+ * Input: "12:00 AM" -> Output: "00:00"
+ * Input: "12:00 PM" -> Output: "12:00"
+ */
+export const convert12HourTo24Hour = (time12: string): string => {
+  // Check if already in 24-hour format (contains ":" and no "AM"/"PM")
+  if (time12.includes(':') && !time12.includes('AM') && !time12.includes('PM')) {
+    return time12
+  }
+
+  const match = time12.match(/(\d+):(\d+)\s*(AM|PM)/i)
+  if (!match) {
+    // If format is unexpected, try to parse as 24-hour
+    return time12
+  }
+
+  let hours = parseInt(match[1], 10)
+  const minutes = parseInt(match[2], 10)
+  const ampm = match[3].toUpperCase()
+
+  if (ampm === 'PM' && hours !== 12) {
+    hours += 12
+  } else if (ampm === 'AM' && hours === 12) {
+    hours = 0
+  }
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
+/**
+ * Converts 24-hour format to 12-hour format for display
+ * Input: "14:00" -> Output: "2:00 PM"
+ * Input: "09:30" -> Output: "9:30 AM"
+ * Input: "00:00" -> Output: "12:00 AM"
+ * Input: "12:00" -> Output: "12:00 PM"
+ */
+const convert24HourTo12Hour = (time24: string): string => {
+  const [hours, minutes] = time24.split(':').map(Number)
+  let hour12 = hours % 12
+  if (hour12 === 0) hour12 = 12
+  const ampm = hours < 12 ? 'AM' : 'PM'
+  return `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`
 }
 
 export const generateTimeRange = (
@@ -25,11 +72,12 @@ export const generateTimeRange = (
 
     const hours = time.getHours().toString().padStart(2, '0')
     const minutes = time.getMinutes().toString().padStart(2, '0')
-    const displayTime = `${hours}:${minutes}`
+    const time24 = `${hours}:${minutes}`
+    const displayTime = convert24HourTo12Hour(time24)
 
     slots.push({
-      time: displayTime,
-      displayTime: displayTime,
+      time: time24, // Keep 24-hour for internal comparison
+      displayTime: displayTime, // Use 12-hour for display
     })
   }
 
@@ -44,27 +92,162 @@ export const findTimeRangeIndices = (
   let startIndex = -1
   let endIndex = -1
 
+  // Convert task times to 24-hour format for comparison
+  const startTime24 = convert12HourTo24Hour(startTime)
+  const endTime24 = convert12HourTo24Hour(endTime)
+
+  // Convert to numeric format (HHmm) for proper comparison
+  const startTimeNum = parseInt(startTime24.replace(':', ''))
+  const endTimeNum = parseInt(endTime24.replace(':', ''))
+
+  // Check if task spans midnight (e.g., 11:00 PM to 2:00 AM)
+  const spansMidnight = startTimeNum > endTimeNum
+
   timeSlots.forEach((slot, idx) => {
-    if (slot.time >= startTime && startIndex === -1) {
-      startIndex = idx
+    const slotTimeNum = parseInt(slot.time.replace(':', ''))
+    
+    // Find start index
+    if (startIndex === -1) {
+      if (spansMidnight) {
+        // For tasks spanning midnight, start from the slot >= startTime
+        if (slotTimeNum >= startTimeNum || slotTimeNum < endTimeNum) {
+          startIndex = idx
+        }
+      } else {
+        // For normal tasks, start from the slot >= startTime
+        if (slotTimeNum >= startTimeNum) {
+          startIndex = idx
+        }
+      }
     }
-    if (slot.time <= endTime) {
-      endIndex = idx
+
+    // Find end index
+    if (spansMidnight) {
+      // For tasks spanning midnight, end at the slot <= endTime (which will be in next day)
+      if (slotTimeNum <= endTimeNum) {
+        endIndex = idx
+      }
+    } else {
+      // For normal tasks, only update endIndex if slot is <= endTime AND >= startTime
+      // This prevents including AM slots when task is purely PM
+      if (slotTimeNum <= endTimeNum && slotTimeNum >= startTimeNum) {
+        endIndex = idx
+      }
     }
   })
 
   return startIndex !== -1 && endIndex !== -1 ? { startIndex, endIndex } : null
 }
 
+/**
+ * Checks if two time ranges overlap
+ */
+export const doTimeRangesOverlap = (
+  start1: string,
+  end1: string,
+  start2: string,
+  end2: string
+): boolean => {
+  // Convert time strings to minutes for comparison
+  // Handle both 12-hour and 24-hour formats
+  const timeToMinutes = (time: string): number => {
+    const time24 = convert12HourTo24Hour(time)
+    const [hours, minutes] = time24.split(':').map(Number)
+    return hours * 60 + minutes
+  }
+
+  const start1Min = timeToMinutes(start1)
+  const end1Min = timeToMinutes(end1)
+  const start2Min = timeToMinutes(start2)
+  const end2Min = timeToMinutes(end2)
+
+  // Handle case where time range might span midnight (e.g., 11:00 PM-2:00 AM)
+  // For simplicity, we'll assume tasks don't span midnight in this context
+  // If they do, we'd need to handle that case separately
+
+  // Two ranges overlap if: start1 < end2 && start2 < end1
+  return start1Min < end2Min && start2Min < end1Min
+}
+
+/**
+ * Assigns vertical layers to tasks to prevent overlap
+ * Returns a map of task ID to layer number (0 = bottom layer)
+ */
+export const assignTaskLayers = <T extends { id: string; startTime: string; endTime: string }>(
+  tasks: T[]
+): Map<string, number> => {
+  const layerMap = new Map<string, number>()
+
+  if (tasks.length === 0) return layerMap
+
+  // Sort tasks by start time, then by end time
+  // Convert to 24-hour format for proper sorting
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const aStart24 = convert12HourTo24Hour(a.startTime)
+    const bStart24 = convert12HourTo24Hour(b.startTime)
+    if (aStart24 < bStart24) return -1
+    if (aStart24 > bStart24) return 1
+
+    const aEnd24 = convert12HourTo24Hour(a.endTime)
+    const bEnd24 = convert12HourTo24Hour(b.endTime)
+    if (aEnd24 < bEnd24) return -1
+    if (aEnd24 > bEnd24) return 1
+    return 0
+  })
+
+  // Track which layers are occupied at each point in time
+  // We'll use a greedy algorithm: assign each task to the lowest available layer
+  const layers: Array<Array<{ start: string; end: string }>> = []
+
+  for (const task of sortedTasks) {
+    let assignedLayer = -1
+
+    // Find the first layer where this task doesn't overlap with existing tasks
+    for (let layerIndex = 0; layerIndex < layers.length; layerIndex++) {
+      const layer = layers[layerIndex]
+      const hasOverlap = layer.some(existingTask =>
+        doTimeRangesOverlap(
+          existingTask.start,
+          existingTask.end,
+          task.startTime,
+          task.endTime
+        )
+      )
+
+      if (!hasOverlap) {
+        assignedLayer = layerIndex
+        break
+      }
+    }
+
+    // If no available layer found, create a new one
+    if (assignedLayer === -1) {
+      assignedLayer = layers.length
+      layers.push([])
+    }
+
+    // Assign task to layer and track it
+    layerMap.set(task.id, assignedLayer)
+    layers[assignedLayer].push({
+      start: task.startTime,
+      end: task.endTime,
+    })
+  }
+
+  return layerMap
+}
+
 export const calculateTaskSpanStyle = (
   startIndex: number,
   endIndex: number,
-  rowTop: number
+  rowTop: number,
+  layer: number = 0
 ): { left: string; width: string; top: string; height: string } => {
   const { DEPARTMENT_COLUMN_WIDTH } = TIME_GANTT_LAYOUT
   const CELL_WIDTH = TIME_GANTT_LAYOUT.TIME_CELL_WIDTH
   const ROW_HEIGHT = 48 // Height of each row cell (h-48px)
   const TASK_HEIGHT = TIME_GANTT_LAYOUT.TASK_HEIGHT
+  const TASK_VERTICAL_SPACING = 2 // Space between stacked tasks
 
   const widthCells = endIndex - startIndex + 1
 
@@ -86,8 +269,10 @@ export const calculateTaskSpanStyle = (
 
   // Center the span vertically in the row
   // Row height is 48px, task height is 24px, so center offset is (48 - 24) / 2 = 12px
+  // Add layer offset to stack overlapping tasks vertically
   const verticalCenterOffset = (ROW_HEIGHT - TASK_HEIGHT) / 2
-  const centeredTop = rowTop + verticalCenterOffset
+  const layerOffset = layer * (TASK_HEIGHT + TASK_VERTICAL_SPACING)
+  const centeredTop = rowTop + verticalCenterOffset + layerOffset
 
   return {
     left: `${left}px`,

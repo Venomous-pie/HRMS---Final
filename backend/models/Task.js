@@ -39,7 +39,7 @@ export default function TaskModel(sequelize) {
       allowNull: false,
       defaultValue: 'scheduled',
       validate: {
-        isIn: [['closed', 'booked', 'scheduled', 'in-progress', 'completed']]
+        isIn: [['closed', 'booked', 'scheduled', 'in-progress', 'completed', 'available', 'understaffed']]
       }
     },
     assignedStaff: {
