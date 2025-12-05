@@ -207,6 +207,7 @@ import Searchbar from '@/components/Searchbar.vue'
 import { useGuestStore } from '@/stores/guest'
 import { useHotelDataStore } from '@/stores/hotelData'
 import type { Guest, Reservation } from '@/types/hotel'
+import { useEntitySearch, getGuestSearchText } from '@/composables/useUnifiedSearch'
 
 // UI State
 const showAdvancedFilters = ref(false)
@@ -408,13 +409,11 @@ function selectNameSort(option: { label: string; value: string }) {
   activeDropdown.value = null
 }
 
-function handleGuestSearch(query: string) {
-  filters.value.search = query
-}
+// handleGuestSearch is now provided by useEntitySearch composable
 
 function clearAllFilters() {
+  clearSearch()
   filters.value = {
-    search: '',
     nameSort: '',
     guestStatus: '',
     guestType: '',
@@ -430,7 +429,7 @@ function clearAllFilters() {
 
 const hasActiveFilters = computed(() => {
   const f = filters.value
-  return !!(f.search || f.nameSort || f.guestStatus || f.guestType ||
+  return !!(searchQuery.value || f.nameSort || f.guestStatus || f.guestType ||
     f.totalStays || f.totalSpent || f.city || f.locationType ||
     f.documentStatus || f.lastVisitFrom || f.lastVisitTo)
 })
@@ -440,6 +439,14 @@ const guestStore = useGuestStore()
 const hotelDataStore = useHotelDataStore()
 const { guests, loading, error } = storeToRefs(guestStore)
 const { reservations } = storeToRefs(hotelDataStore)
+
+// Use the unified search composable
+const guestSearch = useEntitySearch<Guest>(
+  guests,
+  (guest) => getGuestSearchText(guest),
+  { debounceMs: 300, minQueryLength: 1 }
+)
+const { filteredItems: searchedGuests, search: handleGuestSearch, searchQuery, clearSearch } = guestSearch
 
 // Philippine cities for local detection
 const philippineCities = ['Manila', 'Cebu', 'Davao', 'Quezon City', 'Makati', 'Pasig', 'Taguig', 'Caloocan', 'Parañaque', 'Las Piñas', 'Antipolo', 'Bacoor', 'Tarlac', 'Baguio', 'Iloilo', 'Bacolod', 'Cagayan de Oro', 'General Santos', 'Zamboanga']
@@ -454,20 +461,8 @@ const paginatedGuests = computed(() => {
 })
 
 const filteredGuests = computed(() => {
-  let result = guests.value
-
-  // Search filter
-  if (filters.value.search) {
-    const q = filters.value.search.toLowerCase()
-    result = result.filter(g =>
-      (g.firstName && g.firstName.toLowerCase().includes(q)) ||
-      (g.lastName && g.lastName.toLowerCase().includes(q)) ||
-      (g.middleName && g.middleName.toLowerCase().includes(q)) ||
-      (g.email && g.email.toLowerCase().includes(q)) ||
-      (g.phone && g.phone.toLowerCase().includes(q)) ||
-      (g.address && g.address.toLowerCase().includes(q))
-    )
-  }
+  // Start with search-filtered results
+  let result = searchedGuests.value
 
   // Guest Status filter
   if (filters.value.guestStatus) {

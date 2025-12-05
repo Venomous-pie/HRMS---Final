@@ -163,6 +163,8 @@ import { storeToRefs } from 'pinia'
 import { ref, computed, onMounted } from 'vue'
 import { useHotelDataStore } from '@/stores/hotelData'
 import { useFilterOptions } from '@/composables/useFilterOptions'
+import { useEntitySearch, getReservationSearchText } from '@/composables/useUnifiedSearch'
+import type { Reservation } from '@/types/hotel'
 
 // Dropdown state and options for new dropdown filters
 const showCheckInDropdown = ref(false)
@@ -268,7 +270,12 @@ const hotelDataStore = useHotelDataStore()
 const { reservations, loading, error } = storeToRefs(hotelDataStore)
 const { roomTypeOptions, reservationStatusOptions, bookingSourceOptions } = useFilterOptions(undefined, reservations)
 
-const searchQuery = ref('')
+// Use the unified search composable
+const { searchQuery, filteredItems: searchedReservations, search: handleReservationSearch } = useEntitySearch<Reservation>(
+  reservations,
+  (reservation) => getReservationSearchText(reservation),
+  { debounceMs: 300, minQueryLength: 1 }
+)
 
 const filters = ref({
   checkIn: '',
@@ -277,10 +284,6 @@ const filters = ref({
   guestSort: '', // 'az' | 'za'
   status: '',
 })
-
-function handleReservationSearch(query: string) {
-  searchQuery.value = query
-}
 
 function clearAllFilters() {
   filters.value = { checkIn: '', checkOut: '', bookingSort: '', guestSort: '', status: '' }
@@ -292,20 +295,8 @@ const hasActiveFilters = computed(() => {
 })
 
 const filteredReservations = computed(() => {
-  let result = reservations.value
-
-  // Search
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase()
-    result = result.filter(r =>
-      (r.bookingNumber && r.bookingNumber.toLowerCase().includes(q)) ||
-      (r.id && String(r.id).toLowerCase().includes(q)) ||
-      (r.roomNumber && r.roomNumber.toLowerCase().includes(q)) ||
-      (r.room && r.room.toLowerCase().includes(q)) ||
-      (r.guestName && r.guestName.toLowerCase().includes(q)) ||
-      (r.guest && r.guest.toLowerCase().includes(q))
-    )
-  }
+  // Start with search-filtered results
+  let result = searchedReservations.value
 
   // Check-in filter
   if (filters.value.checkIn) {
