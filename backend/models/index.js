@@ -6,6 +6,7 @@ import RoomTypeModel from "./RoomType.js";
 import UserModel from "./User.js";
 import PaymentModel from "./Payment.js";
 import InvoiceModel from "./Invoice.js";
+import TaskModel from "./Task.js";
 
 const sequelize = new Sequelize({
   dialect: "sqlite",
@@ -19,6 +20,7 @@ const RoomType = RoomTypeModel(sequelize);
 const User = UserModel(sequelize);
 const Payment = PaymentModel(sequelize);
 const Invoice = InvoiceModel(sequelize);
+const Task = TaskModel(sequelize);
 
 // Associations
 Guest.hasMany(Reservation);
@@ -34,4 +36,4 @@ RoomType.hasMany(Room);
 User.belongsTo(User, { as: 'Creator', foreignKey: 'createdBy' });
 User.hasMany(User, { as: 'CreatedUsers', foreignKey: 'createdBy' });
 
-export { sequelize, Guest, Reservation, Room, RoomType, User, Payment, Invoice };
+export { sequelize, Guest, Reservation, Room, RoomType, User, Payment, Invoice, Task };

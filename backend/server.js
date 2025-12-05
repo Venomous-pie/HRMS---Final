@@ -27,6 +27,7 @@ import {
 } from "./middleware/errorHandler.js";
 import dashboardRouter from "./routes/dashboard.js";
 import { seedReservations, clearReservations } from "./seeders/reservationSeeder.js";
+import { seedTasks, clearTasks } from "./seeders/taskSeeder.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -114,6 +115,40 @@ app.post("/api/admin/clear-reservations", async (req, res) => {
     res.status(500).json({
       success: false,
       error: `Failed to clear reservations: ${error.message}`
+    });
+  }
+});
+
+// Task seeder endpoints
+app.post("/api/admin/seed-tasks", async (req, res) => {
+  try {
+    console.log('📡 Task seeder endpoint called');
+    console.log('🔄 Starting task seeding process...');
+    
+    const result = await seedTasks();
+    
+    console.log('✅ Task seeder completed successfully:', result);
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Task seeder error:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      error: `Failed to seed tasks: ${error.message}`,
+      details: error.stack
+    });
+  }
+});
+
+app.post("/api/admin/clear-tasks", async (req, res) => {
+  try {
+    const result = await clearTasks();
+    res.json(result);
+  } catch (error) {
+    console.error('Clear tasks error:', error);
+    res.status(500).json({
+      success: false,
+      error: `Failed to clear tasks: ${error.message}`
     });
   }
 });

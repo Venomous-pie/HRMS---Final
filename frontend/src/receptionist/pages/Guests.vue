@@ -117,7 +117,12 @@
 
   <!-- Results Count -->
   <div class="mb-3 mx-6 text-xs text-gray-600">
-    Showing {{ filteredGuests.length }} of {{ guests.length }} guests
+    <span v-if="filteredGuests.length > 0">
+      Showing {{ ((currentPage - 1) * PAGE_SIZE) + 1 }}-{{ Math.min(currentPage * PAGE_SIZE, filteredGuests.length) }} of {{ filteredGuests.length }} guests
+    </span>
+    <span v-else>
+      No guests found
+    </span>
   </div>
 
   <div class="overflow-x-auto rounded shadow border border-gray-200 mx-6 mb-4">

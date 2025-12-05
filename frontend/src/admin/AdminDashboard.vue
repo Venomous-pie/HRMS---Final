@@ -321,6 +321,25 @@
                 <i class="pi pi-bug"></i>
                 Debug Charts
               </button>
+              <div class="border-t border-gray-200 my-3"></div>
+              <button
+                @click="seedTasks"
+                :disabled="seederLoading"
+                class="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+              >
+                <i v-if="seederLoading" class="pi pi-spin pi-spinner"></i>
+                <i v-else class="pi pi-calendar-plus"></i>
+                {{ seederLoading ? 'Seeding Tasks...' : 'Seed Task Schedules' }}
+              </button>
+              <button
+                @click="clearTasks"
+                :disabled="seederLoading"
+                class="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm text-orange-700 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors"
+              >
+                <i v-if="seederLoading" class="pi pi-spin pi-spinner"></i>
+                <i v-else class="pi pi-calendar-times"></i>
+                Clear Task Schedules
+              </button>
             </div>
           </div>
         </div>
@@ -672,6 +691,73 @@ const seedReservations = async () => {
     console.error('Seeder error:', error)
     const msg = error instanceof Error ? error.message : 'Unknown error'
     showWithTimeout(`Seeding failed: ${msg}`, 3000)
+  } finally {
+    seederLoading.value = false
+  }
+}
+
+const seedTasks = async () => {
+  console.log('🌱 Task seed button clicked!')
+  seederLoading.value = true
+  
+  try {
+    console.log('📡 Calling task seeder API...')
+    const response = await fetch('http://localhost:3000/api/admin/seed-tasks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    console.log('📡 Task seeder API response status:', response.status)
+    
+    const result = await response.json()
+    console.log('📡 Task seeder API result:', result)
+    console.log('📊 Task seeder data details:', result.data)
+    
+    if (result.success) {
+      // Success toast
+      const tasksCreated = result.data?.tasksCreated || 0
+      const daysSpanned = result.data?.daysSpanned || 0
+      showWithTimeout(`Task seeding successful: ${tasksCreated} tasks created for ${daysSpanned} days`, 3000)
+    } else {
+      showWithTimeout(`Task seeding failed: ${result.error}`, 3000)
+    }
+  } catch (error) {
+    console.error('Task seeder error:', error)
+    const msg = error instanceof Error ? error.message : 'Unknown error'
+    showWithTimeout(`Task seeding failed: ${msg}`, 3000)
+  } finally {
+    seederLoading.value = false
+  }
+}
+
+const clearTasks = async () => {
+  if (!confirm('Are you sure you want to clear all task schedules? This cannot be undone.')) {
+    return
+  }
+  
+  seederLoading.value = true
+  
+  try {
+    const response = await fetch('http://localhost:3000/api/admin/clear-tasks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    const result = await response.json()
+    
+    if (result.success) {
+      showWithTimeout('All task schedules cleared successfully', 3000)
+    } else {
+      showWithTimeout(`Failed to clear tasks: ${result.error}`, 3000)
+    }
+  } catch (error) {
+    console.error('Clear tasks error:', error)
+    const msg = error instanceof Error ? error.message : 'Unknown error'
+    showWithTimeout(`Failed to clear tasks: ${msg}`, 3000)
   } finally {
     seederLoading.value = false
   }
