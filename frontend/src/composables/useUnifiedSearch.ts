@@ -210,7 +210,7 @@ export function getGuestSearchText(guest: Guest | any): { text: string; fields: 
 /**
  * Extracts searchable text from a room
  */
-function getRoomSearchText(room: Room | any): { text: string; fields: string[] } {
+export function getRoomSearchText(room: Room | any): { text: string; fields: string[] } {
   const fields: string[] = []
   const texts: string[] = []
   
