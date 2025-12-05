@@ -9,10 +9,11 @@ import {
   User,
   Payment,
   Invoice,
+  Task,
 } from "./models/index.js";
 import { seedData } from "./services/seedService.js";
 import { getStatusColor } from "./data/roomData.js";
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import { authenticateToken, generateToken, optionalAuth } from "./middleware/auth.js";
 import { requirePermission, requireAnyPermission, requireRole, requireAdmin, requireAdminOrManager } from "./middleware/permissions.js";
 import { 
@@ -120,15 +121,46 @@ app.post("/api/admin/clear-reservations", async (req, res) => {
 });
 
 // Task seeder endpoints
-app.post("/api/admin/seed-tasks", async (req, res) => {
+app.post("/api/admin/seed-tasks", authenticateToken, async (req, res) => {
   try {
     console.log('📡 Task seeder endpoint called');
     console.log('🔄 Starting task seeding process...');
     
+    // Check if tasks already exist
+    const existingCount = await Task.count();
+    console.log(`📊 Existing tasks in database: ${existingCount}`);
+    
     const result = await seedTasks();
     
+    // Verify tasks were created
+    const newCount = await Task.count();
+    const tasksCreated = newCount - existingCount;
+    console.log(`📊 Tasks after seeding: ${newCount} (${tasksCreated} new tasks)`);
+    
+    // Get date range of created tasks
+    const dateRange = await Task.findAll({
+      attributes: [
+        [Sequelize.fn('MIN', Sequelize.col('date')), 'minDate'],
+        [Sequelize.fn('MAX', Sequelize.col('date')), 'maxDate']
+      ],
+      raw: true
+    });
+    
     console.log('✅ Task seeder completed successfully:', result);
-    res.json(result);
+    console.log(`📅 Task date range: ${dateRange[0]?.minDate} to ${dateRange[0]?.maxDate}`);
+    
+    res.json({
+      ...result,
+      debug: {
+        existingTasks: existingCount,
+        newTasks: tasksCreated,
+        totalTasks: newCount,
+        dateRange: {
+          min: dateRange[0]?.minDate,
+          max: dateRange[0]?.maxDate
+        }
+      }
+    });
   } catch (error) {
     console.error('❌ Task seeder error:', error);
     console.error('Error stack:', error.stack);
@@ -149,6 +181,183 @@ app.post("/api/admin/clear-tasks", async (req, res) => {
     res.status(500).json({
       success: false,
       error: `Failed to clear tasks: ${error.message}`
+    });
+  }
+});
+
+// Debug endpoint to check task counts
+app.get("/api/admin/tasks/debug", authenticateToken, async (req, res) => {
+  try {
+    const totalTasks = await Task.count();
+    const tasksByDate = await Task.findAll({
+      attributes: [
+        'date',
+        [Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
+      ],
+      group: ['date'],
+      order: [['date', 'ASC']],
+      raw: true
+    });
+    
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Try different date formats to check
+    const todayTasks1 = await Task.count({ where: { date: today } });
+    // Alternative query using DATE function (for SQLite compatibility)
+    const todayTasks2 = await Task.count({ 
+      where: sequelize.literal(`DATE(date) = DATE('${today}')`)
+    });
+    
+    // Get sample tasks to see date format
+    const sampleTasks = await Task.findAll({
+      limit: 5,
+      attributes: ['id', 'date', 'department', 'itemName'],
+      order: [['date', 'ASC']]
+    });
+    
+    const sampleDates = sampleTasks.map(t => {
+      const taskData = t.toJSON ? t.toJSON() : t;
+      return {
+        id: taskData.id,
+        date: taskData.date,
+        dateType: typeof taskData.date,
+        dateString: taskData.date instanceof Date ? taskData.date.toISOString().split('T')[0] : String(taskData.date),
+        department: taskData.department
+      };
+    });
+    
+    res.json({
+      totalTasks,
+      todayTasks: todayTasks1,
+      todayTasksAlt: todayTasks2,
+      todayDate: today,
+      tasksByDate: tasksByDate.slice(0, 10).map(t => ({
+        date: t.date,
+        dateString: t.date instanceof Date ? t.date.toISOString().split('T')[0] : String(t.date),
+        count: t.count
+      })),
+      sampleTasks: sampleDates,
+      message: totalTasks === 0 
+        ? '⚠️ No tasks found in database. Please seed tasks using the "Seed Task Schedules" button in Admin Dashboard.'
+        : `✅ Found ${totalTasks} tasks. Today (${today}) has ${todayTasks1} tasks.`
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get tasks endpoint - fetches tasks for a specific date range
+app.get("/api/tasks", authenticateToken, async (req, res) => {
+  try {
+    const { date, startTime, endTime } = req.query;
+    
+    const where = {};
+    
+    // Filter by date if provided (get tasks for today and next 7 days)
+    if (date) {
+      // Ensure date is in YYYY-MM-DD format
+      const dateStr = typeof date === 'string' ? date : new Date(date).toISOString().split('T')[0];
+      const startDate = dateStr;
+      const endDate = new Date(dateStr);
+      endDate.setDate(endDate.getDate() + 7); // Get next 7 days
+      const endDateStr = endDate.toISOString().split('T')[0];
+      
+      // For DATEONLY fields in SQLite, use string comparison
+      // SQLite stores DATEONLY as TEXT, so we compare as strings
+      where.date = {
+        [Op.gte]: startDate,
+        [Op.lte]: endDateStr
+      };
+      
+      console.log(`📅 Fetching tasks from ${startDate} to ${endDateStr}`);
+      console.log(`🔍 Query filter: date >= '${startDate}' AND date <= '${endDateStr}'`);
+    } else {
+      console.log('📅 Fetching all tasks (no date filter)');
+    }
+    
+    // Add time filters if provided
+    if (startTime) {
+      where.startTime = { [Op.gte]: startTime };
+    }
+    if (endTime) {
+      where.endTime = { [Op.lte]: endTime };
+    }
+    
+    const tasks = await Task.findAll({
+      where,
+      order: [
+        ['department', 'ASC'],
+        ['itemName', 'ASC'],
+        ['date', 'ASC'],
+        ['startTime', 'ASC']
+      ],
+      raw: false // Keep as Sequelize instances to properly serialize DATEONLY
+    });
+    
+    console.log(`✅ Found ${tasks.length} tasks`);
+    
+    // Log sample dates from returned tasks for debugging (always log, not just when empty)
+    if (tasks.length > 0) {
+      const sampleTaskDates = tasks.slice(0, 5).map(t => {
+        const taskData = t.toJSON ? t.toJSON() : t;
+        const dateValue = taskData.date instanceof Date 
+          ? taskData.date.toISOString().split('T')[0] 
+          : String(taskData.date).split('T')[0];
+        return dateValue;
+      });
+      console.log(`📋 Sample dates in returned tasks:`, sampleTaskDates);
+    }
+    
+    // If no tasks found and date filter was used, log for debugging
+    if (tasks.length === 0 && date) {
+      const totalTasks = await Task.count();
+      const sampleDates = await Task.findAll({
+        attributes: ['date'],
+        group: ['date'],
+        limit: 10,
+        order: [['date', 'ASC']],
+        raw: true
+      });
+      console.log(`⚠️ No tasks found for date ${date}. Total tasks in DB: ${totalTasks}`);
+      console.log(`📋 Sample dates in DB:`, sampleDates.map(t => {
+        // DATEONLY fields might be Date objects or strings
+        const dateValue = t.date instanceof Date ? t.date.toISOString().split('T')[0] : String(t.date);
+        return dateValue;
+      }));
+    }
+    
+    // Serialize tasks and ensure date is in YYYY-MM-DD format
+    const serializedTasks = tasks.map(task => {
+      const taskData = task.toJSON ? task.toJSON() : task;
+      // Ensure date is always a string in YYYY-MM-DD format
+      if (taskData.date instanceof Date) {
+        taskData.date = taskData.date.toISOString().split('T')[0];
+      } else if (taskData.date) {
+        // If it's already a string, ensure it's in correct format
+        // Handle both 'YYYY-MM-DD' and 'YYYY-MM-DDTHH:mm:ss.sssZ' formats
+        const dateStr = String(taskData.date);
+        taskData.date = dateStr.split('T')[0].split(' ')[0]; // Get just the date part
+      }
+      return taskData;
+    });
+    
+    // Log what dates are being returned after serialization
+    if (serializedTasks.length > 0 && date) {
+      const uniqueDates = [...new Set(serializedTasks.map(t => t.date))].sort();
+      console.log(`📊 Unique dates in response:`, uniqueDates.slice(0, 10));
+      const todayCount = serializedTasks.filter(t => t.date === date).length;
+      console.log(`📊 Tasks matching requested date (${date}): ${todayCount} out of ${serializedTasks.length}`);
+      if (todayCount === 0) {
+        console.log(`⚠️ WARNING: No tasks match today's date (${date}). Check if tasks were seeded with correct start date.`);
+      }
+    }
+    
+    res.json(serializedTasks);
+  } catch (error) {
+    console.error('Error fetching tasks:', error);
+    res.status(500).json({
+      success: false,
+      error: `Failed to fetch tasks: ${error.message}`
     });
   }
 });

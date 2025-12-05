@@ -349,12 +349,20 @@ export async function seedTasks() {
     const existingTasks = await Task.count();
     console.log(`📊 Existing tasks: ${existingTasks}`);
     
-    // Generate tasks for the next 30 days
+    // Generate tasks for the next 3 years (approximately 1095 days)
+    // Normalize today to start of day (midnight) to ensure we start from today
     const today = new Date();
-    const daysToGenerate = 30;
+    today.setHours(0, 0, 0, 0); // Set to midnight to ensure we start from today
+    const daysToGenerate = 365 * 3; // 3 years
     const allTasks = [];
     
-    console.log(`📅 Generating tasks for ${daysToGenerate} days starting from ${today.toDateString()}...`);
+    const startDateStr = formatDate(today);
+    const endDate = addDays(today, daysToGenerate - 1);
+    const endDateStr = formatDate(endDate);
+    
+    console.log(`📅 Generating tasks for ${daysToGenerate} days (3 years)`);
+    console.log(`📅 Date range: ${startDateStr} to ${endDateStr}`);
+    console.log(`📅 Starting from TODAY: ${today.toDateString()} (${startDateStr})`);
     
     for (let i = 0; i < daysToGenerate; i++) {
       const currentDate = addDays(today, i);
@@ -366,12 +374,26 @@ export async function seedTasks() {
       allTasks.push(...generateBarTasks(currentDate));
       allTasks.push(...generateRoomServiceTasks(currentDate));
       
-      if ((i + 1) % 5 === 0) {
-        console.log(`📊 Generated tasks for ${i + 1}/${daysToGenerate} days...`);
+      // Log progress every 30 days (or at milestones)
+      if ((i + 1) % 30 === 0 || (i + 1) === daysToGenerate) {
+        const progressPercent = Math.round(((i + 1) / daysToGenerate) * 100);
+        console.log(`📊 Generated tasks for ${i + 1}/${daysToGenerate} days (${progressPercent}%)...`);
       }
     }
     
     console.log(`✅ Generated ${allTasks.length} tasks`);
+    
+    // Verify first task date matches today
+    if (allTasks.length > 0) {
+      const firstTaskDate = allTasks[0].date;
+      console.log(`🔍 Verification: First task date = ${firstTaskDate} (should be ${startDateStr})`);
+      if (firstTaskDate !== startDateStr) {
+        console.warn(`⚠️ Warning: First task date (${firstTaskDate}) does not match expected start date (${startDateStr})`);
+      } else {
+        console.log(`✅ Verified: Tasks start from today (${startDateStr})`);
+      }
+    }
+    
     console.log('💾 Saving tasks to database...');
     
     // Bulk create tasks

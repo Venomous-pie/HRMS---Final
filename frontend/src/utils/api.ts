@@ -203,6 +203,18 @@ export const api = {
       }),
   },
 
+  // Task methods
+  tasks: {
+    getAll: (params?: { date?: string; startTime?: string; endTime?: string }) => {
+      const queryParams = new URLSearchParams()
+      if (params?.date) queryParams.append('date', params.date)
+      if (params?.startTime) queryParams.append('startTime', params.startTime)
+      if (params?.endTime) queryParams.append('endTime', params.endTime)
+      const query = queryParams.toString()
+      return apiRequest<any[]>(`/tasks${query ? `?${query}` : ''}`)
+    },
+  },
+
   // Utility methods
   seed: () =>
     apiRequest('/api/seed', {

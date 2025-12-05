@@ -465,6 +465,7 @@ import { useAuth } from '../composables/useAuth'
 import { useDashboardStats } from '../composables/useDashboardStats'
 import { useSuccessNotification } from '../composables/useSuccessNotification'
 import { useClickOutside } from '../composables/useClickOutside'
+import { apiFetch } from '@/services/apiClient'
 import AdminLayout from './AdminLayout.vue'
 import Searchbar from '@/components/Searchbar.vue'
 import Custombutton from '@/components/Custombutton.vue'
@@ -702,24 +703,33 @@ const seedTasks = async () => {
   
   try {
     console.log('📡 Calling task seeder API...')
-    const response = await fetch('http://localhost:3000/api/admin/seed-tasks', {
+    const result = await apiFetch<any>('/admin/seed-tasks', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       }
     })
     
-    console.log('📡 Task seeder API response status:', response.status)
-    
-    const result = await response.json()
     console.log('📡 Task seeder API result:', result)
     console.log('📊 Task seeder data details:', result.data)
+    console.log('🔍 Debug info:', result.debug)
     
     if (result.success) {
-      // Success toast
-      const tasksCreated = result.data?.tasksCreated || 0
+      // Success toast with more details
+      const tasksCreated = result.data?.tasksCreated || result.debug?.newTasks || 0
       const daysSpanned = result.data?.daysSpanned || 0
-      showWithTimeout(`Task seeding successful: ${tasksCreated} tasks created for ${daysSpanned} days`, 3000)
+      const totalTasks = result.debug?.totalTasks || 0
+      const dateRange = result.debug?.dateRange
+      
+      let message = `Task seeding successful: ${tasksCreated} tasks created for ${daysSpanned} days`
+      if (dateRange?.min && dateRange?.max) {
+        message += ` (${dateRange.min} to ${dateRange.max})`
+      }
+      if (totalTasks > 0) {
+        message += ` • Total: ${totalTasks} tasks`
+      }
+      
+      showWithTimeout(message, 5000)
     } else {
       showWithTimeout(`Task seeding failed: ${result.error}`, 3000)
     }
@@ -740,14 +750,12 @@ const clearTasks = async () => {
   seederLoading.value = true
   
   try {
-    const response = await fetch('http://localhost:3000/api/admin/clear-tasks', {
+    const result = await apiFetch<any>('/admin/clear-tasks', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       }
     })
-    
-    const result = await response.json()
     
     if (result.success) {
       showWithTimeout('All task schedules cleared successfully', 3000)

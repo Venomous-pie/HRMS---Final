@@ -13,8 +13,8 @@
           </th>
 
           <th
-            v-for="slot in timeSlots"
-            :key="slot.time"
+            v-for="(slot, index) in timeSlots"
+            :key="`time-${index}-${slot.time}`"
             data-task-time-cell
             class="px-1 py-2 text-center outline outline-1 outline-gray-100 transition-colors w-61.5px min-w-61.5px max-w-61.5px overflow-hidden h-48px"
             :class="{ 'bg-green-50': hoveredColumn === slot.time }"
@@ -81,8 +81,8 @@
               </div>
             </td>
             <td
-              v-for="slot in timeSlots"
-              :key="`${category.name}-${slot.time}`"
+              v-for="(slot, slotIndex) in timeSlots"
+              :key="`${category.name}-${slotIndex}-${slot.time}`"
               data-task-time-cell
               class="px-0.5 py-2 outline outline-1 outline-gray-100 transition-colors w-61.5px min-w-61.5px max-w-61.5px overflow-hidden h-48px"
               :class="{ 'bg-green-50': hoveredColumn === slot.time }"

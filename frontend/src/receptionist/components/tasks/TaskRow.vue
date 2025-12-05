@@ -23,8 +23,8 @@
   </td>
 
   <td
-    v-for="slot in timeSlots"
-    :key="`${item.id}-${slot.time}`"
+    v-for="(slot, slotIndex) in timeSlots"
+    :key="`${item.id}-${slotIndex}-${slot.time}`"
     class="px-0.5 py-2 outline outline-1 outline-gray-100 transition-colors hover:bg-green-100 w-61.5px min-w-61.5px max-w-61.5px overflow-hidden h-48px"
     :class="{
       'bg-green-50': hoveredColumn === slot.time,
