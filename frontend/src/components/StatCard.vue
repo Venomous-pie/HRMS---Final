@@ -1,15 +1,15 @@
 <template>
-  <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 transition-all duration-200 hover:shadow-xl">
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
     <div class="flex items-center">
-      <div :class="['p-3 rounded-xl flex items-center justify-center', iconBg]"><i :class="[icon, 'text-xl']"></i></div>
-      <div class="ml-4 min-w-0">
-        <p class="text-sm font-medium text-gray-600 truncate">{{ title }}</p>
-        <p class="text-2xl font-bold text-gray-900 leading-tight truncate">
+      <div :class="['p-2 rounded-lg flex items-center justify-center', iconBg]"><i :class="[icon, 'text-lg']"></i></div>
+      <div class="ml-3 min-w-0">
+        <p class="text-xs font-medium text-gray-600 truncate">{{ title }}</p>
+        <p class="text-xl font-bold text-gray-900 leading-tight truncate">
           <slot name="value">{{ formattedValue }}</slot>
         </p>
       </div>
     </div>
-    <p v-if="subtitle" class="mt-2 text-xs text-gray-500">{{ subtitle }}</p>
+    <p v-if="subtitle" class="mt-1 text-xs text-gray-500">{{ subtitle }}</p>
   </div>
 </template>
 
