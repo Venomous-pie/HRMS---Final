@@ -2,19 +2,19 @@
   <div
     class="relative overflow-x-hidden overflow-hidden rounded-lg outline outline-1 mb-4 outline-gray-200 bg-white shadow-sm"
     ref="containerEl">
-    <table class="w-full table-fixed border-collapse min-w-[1254px]">
+    <table class="w-full table-fixed border-collapse min-w-[1000px]">
       <thead>
         <tr>
           <th
-            class="sticky left-0 z-10 bg-gray-50 px-4 py-3 text-left outline outline-1 outline-gray-100 w-[270px] min-w-[270px] max-w-[270px] overflow-hidden text-ellipsis whitespace-nowrap">
-            <div class="text-sm font-bold text-gray-700">Department</div>
+            class="sticky left-0 z-10 bg-gray-50 px-3 py-2 text-left outline outline-1 outline-gray-100 w-[200px] min-w-[200px] max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">
+            <div class="text-xs font-bold text-gray-700">Department</div>
           </th>
 
           <th v-for="(slot, index) in timeSlots" :key="`time-${index}-${slot.time}`" data-task-time-cell
-            class="px-1 py-2 text-center outline outline-1 outline-gray-100 transition-colors w-61.5px min-w-61.5px max-w-61.5px overflow-hidden h-[48px]"
+            class="px-0.5 py-1.5 text-center outline outline-1 outline-gray-100 transition-colors w-[50px] min-w-[50px] max-w-[50px] overflow-hidden h-[40px]"
             :class="{ 'bg-green-50': hoveredColumn === slot.time }" @mouseenter="$emit('columnHover', slot.time)"
             @mouseleave="$emit('columnLeave')">
-            <div class="text-xs font-bold text-gray-600">
+            <div class="text-[10px] font-bold text-gray-600">
               {{ slot.displayTime }}
             </div>
           </th>
@@ -43,23 +43,23 @@
         <template v-else v-for="category in taskCategories" :key="category.name">
           <tr class="cursor-pointer" @click="$emit('toggleCategory', category.type)">
             <td
-              class="sticky left-0 z-10 px-4 py-2 bg-white border-r border-gray-200 outline outline-1 outline-gray-100 w-[270px] min-w-[270px] max-w-[270px] overflow-hidden text-ellipsis whitespace-nowrap h-[48px]">
+              class="sticky left-0 z-10 px-3 py-1.5 bg-white border-r border-gray-200 outline outline-1 outline-gray-100 w-[200px] min-w-[200px] max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap h-[40px]">
               <div class="flex items-center">
-                <div class="mr-2 text-gray-500">
-                  <svg v-if="expandedCategories[category.type]" class="w-4 h-4" fill="none" stroke="currentColor"
+                <div class="mr-1.5 text-gray-500">
+                  <svg v-if="expandedCategories[category.type]" class="w-3.5 h-3.5" fill="none" stroke="currentColor"
                     viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                   </svg>
-                  <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                   </svg>
                 </div>
-                <div class="text-sm font-medium text-gray-800">{{ category.name }}</div>
+                <div class="text-xs font-medium text-gray-800">{{ category.name }}</div>
               </div>
             </td>
             <td v-for="(slot, slotIndex) in timeSlots" :key="`${category.name}-${slotIndex}-${slot.time}`"
               data-task-time-cell
-              class="px-0.5 py-2 outline outline-1 outline-gray-100 transition-colors w-61.5px min-w-61.5px max-w-61.5px overflow-hidden h-[48px]"
+              class="px-0.5 py-1.5 outline outline-1 outline-gray-100 transition-colors w-[50px] min-w-[50px] max-w-[50px] overflow-hidden h-[40px]"
               :class="{ 'bg-green-50': hoveredColumn === slot.time }" @mouseenter="$emit('columnHover', slot.time)"
               @mouseleave="$emit('columnLeave')"></td>
           </tr>

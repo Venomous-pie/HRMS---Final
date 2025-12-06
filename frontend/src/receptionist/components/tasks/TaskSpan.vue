@@ -6,17 +6,17 @@
     :title="tooltipText"
     @click="handleClick"
   >
-    <div class="h-full flex items-center text-xs font-medium overflow-hidden">
+    <div class="h-full flex items-center text-[10px] font-medium overflow-hidden">
       <div
         :class="accentColor"
-        class="h-full w-3 rounded-l-lg flex-shrink-0 relative overflow-hidden"
+        class="h-full w-2.5 rounded-l-lg flex-shrink-0 relative overflow-hidden"
       >
         <div
           :class="taskColor"
-          class="absolute right--4 top-1/2 transform -translate-y-1/2 w-7 h-7 rounded-lg -mr-1.5"
+          class="absolute right--4 top-1/2 transform -translate-y-1/2 w-6 h-6 rounded-lg -mr-1.5"
         ></div>
       </div>
-      <span class="px-3 truncate">
+      <span class="px-2 truncate">
         {{ task.title }} {{ task.startTime }}-{{ task.endTime }}
       </span>
     </div>

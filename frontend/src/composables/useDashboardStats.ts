@@ -142,59 +142,95 @@ export function useDashboardStats() {
     }
   }
 
-  const summaryCards = computed(() => [
-    {
-      id: 'occupancy_rate',
-      title: 'Occupancy Rate',
-      icon: 'pi-home',
-      value: occupancyStats.value?.occupancyRate || 0,
-      suffix: '%',
-      description: 'Percentage of rooms currently occupied',
-      trend: '+5%',
-      trendColor: 'text-green-600'
-    },
-    {
-      id: 'total_bookings',
-      title: 'Total Bookings',
-      icon: 'pi-calendar',
-      value: bookingStats.value?.totalBookings || 0,
-      suffix: '',
-      description: 'Number of reservations made',
-      trend: '+12%',
-      trendColor: 'text-green-600'
-    },
-    {
-      id: 'revenue',
-      title: 'Revenue',
-      icon: 'pi-dollar',
-      value: revenueStats.value?.totalRevenue || 0,
-      prefix: '₱',
-      suffix: '',
-      description: 'Total revenue generated',
-      trend: '+8%',
-      trendColor: 'text-green-600'
-    },
-    {
-      id: 'cancellations',
-      title: 'Cancellations',
-      icon: 'pi-times-circle',
-      value: cancellationStats.value?.totalCancellations || 0,
-      suffix: '',
-      description: 'Total number of canceled bookings',
-      trend: '-3%',
-      trendColor: 'text-red-600'
-    },
-    {
-      id: 'available_rooms',
-      title: 'Available Rooms',
-      icon: 'pi-check-circle',
-      value: occupancyStats.value?.availableRooms || 0,
-      suffix: '',
-      description: 'Rooms ready for guests',
-      trend: 'Ready',
-      trendColor: 'text-blue-600'
+  const summaryCards = computed(() => {
+    // Calculate trend from occupancy trend data
+    const calculateOccupancyTrend = () => {
+      if (occupancyTrend.value.length < 2) return null
+      const recent = occupancyTrend.value.slice(-7) // Last 7 days
+      if (recent.length < 2) return null
+      const first = recent[0]?.occupancy_percentage || 0
+      const last = recent[recent.length - 1]?.occupancy_percentage || 0
+      const change = last - first
+      if (Math.abs(change) < 0.1) return null
+      return {
+        value: `${change > 0 ? '+' : ''}${change.toFixed(1)}%`,
+        color: change > 0 ? 'text-green-600' : 'text-red-600'
+      }
     }
-  ])
+
+    // Calculate revenue trend
+    const calculateRevenueTrend = () => {
+      if (revenueTrend.value.length < 2) return null
+      const recent = revenueTrend.value.slice(-2) // Last 2 periods
+      if (recent.length < 2) return null
+      const first = (recent[0]?.revenue || 0) * 1000
+      const last = (recent[recent.length - 1]?.revenue || 0) * 1000
+      if (first === 0) return null
+      const change = ((last - first) / first) * 100
+      if (Math.abs(change) < 0.1) return null
+      return {
+        value: `${change > 0 ? '+' : ''}${change.toFixed(1)}%`,
+        color: change > 0 ? 'text-green-600' : 'text-red-600'
+      }
+    }
+
+    const occupancyTrendData = calculateOccupancyTrend()
+    const revenueTrendData = calculateRevenueTrend()
+
+    return [
+      {
+        id: 'occupancy_rate',
+        title: 'Occupancy Rate',
+        icon: 'pi-home',
+        value: occupancyStats.value?.occupancyRate || 0,
+        suffix: '%',
+        description: 'Percentage of rooms currently occupied',
+        trend: occupancyTrendData?.value || 'N/A',
+        trendColor: occupancyTrendData?.color || 'text-gray-600'
+      },
+      {
+        id: 'total_bookings',
+        title: 'Total Bookings',
+        icon: 'pi-calendar',
+        value: bookingStats.value?.totalBookings || 0,
+        suffix: '',
+        description: 'Number of reservations made',
+        trend: 'N/A',
+        trendColor: 'text-gray-600'
+      },
+      {
+        id: 'revenue',
+        title: 'Revenue',
+        icon: 'pi-dollar',
+        value: revenueStats.value?.totalRevenue || 0,
+        prefix: '₱',
+        suffix: '',
+        description: 'Total revenue generated',
+        trend: revenueTrendData?.value || 'N/A',
+        trendColor: revenueTrendData?.color || 'text-gray-600'
+      },
+      {
+        id: 'cancellations',
+        title: 'Cancellations',
+        icon: 'pi-times-circle',
+        value: cancellationStats.value?.totalCancellations || 0,
+        suffix: '',
+        description: 'Total number of canceled bookings',
+        trend: 'N/A',
+        trendColor: 'text-gray-600'
+      },
+      {
+        id: 'available_rooms',
+        title: 'Available Rooms',
+        icon: 'pi-check-circle',
+        value: occupancyStats.value?.availableRooms || 0,
+        suffix: '',
+        description: 'Rooms ready for guests',
+        trend: 'Current',
+        trendColor: 'text-blue-600'
+      }
+    ]
+  })
 
   const generateRealisticRoomDistribution = (totalBookings: number) => {
     const roomTypeDistribution = [

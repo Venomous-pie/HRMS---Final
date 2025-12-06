@@ -1,8 +1,8 @@
 export const TIME_GANTT_LAYOUT = {
-  DEPARTMENT_COLUMN_WIDTH: 270,
-  TIME_CELL_WIDTH: 61.5,
+  DEPARTMENT_COLUMN_WIDTH: 200,
+  TIME_CELL_WIDTH: 50,
   TOTAL_TIME_COLUMNS: 16,
-  TASK_HEIGHT: 24,
+  TASK_HEIGHT: 20,
 } as const
 
 export interface TimeSlot {
@@ -245,7 +245,7 @@ export const calculateTaskSpanStyle = (
 ): { left: string; width: string; top: string; height: string } => {
   const { DEPARTMENT_COLUMN_WIDTH } = TIME_GANTT_LAYOUT
   const CELL_WIDTH = TIME_GANTT_LAYOUT.TIME_CELL_WIDTH
-  const ROW_HEIGHT = 48 // Height of each row cell (h-48px)
+  const ROW_HEIGHT = 40 // Height of each row cell (h-[40px])
   const TASK_HEIGHT = TIME_GANTT_LAYOUT.TASK_HEIGHT
   const TASK_VERTICAL_SPACING = 2 // Space between stacked tasks
 

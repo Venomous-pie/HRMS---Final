@@ -98,6 +98,21 @@ function formatDate(date) {
   return `${year}-${month}-${day}`;
 }
 
+// Helper function to convert 24-hour time to 12-hour format
+function to12HourFormat(time24) {
+  const [hours, minutes] = time24.split(':');
+  let hour = parseInt(hours);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  
+  if (hour === 0) {
+    hour = 12; // Midnight
+  } else if (hour > 12) {
+    hour = hour - 12;
+  }
+  
+  return `${hour}:${minutes} ${ampm}`;
+}
+
 // Helper to check if date is weekend
 function isWeekend(date) {
   const dayOfWeek = date.getUTCDay();
@@ -118,8 +133,8 @@ function generateSpaTasks(date) {
   
   spaRooms.forEach((roomName) => {
     // Spa operates 8am - 8pm (extended to 9pm on weekends)
-    const openTime = '08:00';
-    const closeTime = isWeekendDay ? '21:00' : '20:00';
+    const openTime = '8:00 AM';
+    const closeTime = isWeekendDay ? '9:00 PM' : '8:00 PM';
     
     // Morning shift: 8am - 1pm (5 hours)
     const morningStaff = getRandomStaff(spaStaff, 2, date);
@@ -128,7 +143,7 @@ function generateSpaTasks(date) {
       department: 'spa',
       itemName: roomName,
       startTime: openTime,
-      endTime: '13:00',
+      endTime: '1:00 PM',
       date: formatDate(date),
       status: morningStaff.length === 2 ? 'scheduled' : 'available',
       assignedStaff: morningStaff.length > 0 ? morningStaff.join(', ') : null,
@@ -140,7 +155,7 @@ function generateSpaTasks(date) {
       title: formatStaffNames(eveningStaff),
       department: 'spa',
       itemName: roomName,
-      startTime: '13:00',
+      startTime: '1:00 PM',
       endTime: closeTime,
       date: formatDate(date),
       status: eveningStaff.length === 2 ? 'scheduled' : 'available',
@@ -154,7 +169,7 @@ function generateSpaTasks(date) {
       department: 'spa',
       itemName: roomName,
       startTime: closeTime,
-      endTime: '23:59',
+      endTime: '11:59 PM',
       date: formatDate(date),
       status: 'closed',
       assignedStaff: null,
@@ -171,9 +186,9 @@ function generateReceptionTasks(date) {
   // Reception operates 24/7 with proper shift management
   // All shifts stay within same day except night shift
   const shifts = [
-    { name: 'Morning', startTime: '07:00', endTime: '15:00', nextDay: false },
-    { name: 'Afternoon', startTime: '15:00', endTime: '23:00', nextDay: false },
-    { name: 'Night', startTime: '23:00', endTime: '07:00', nextDay: true },
+    { name: 'Morning', startTime: '7:00 AM', endTime: '3:00 PM', nextDay: false },
+    { name: 'Afternoon', startTime: '3:00 PM', endTime: '11:00 PM', nextDay: false },
+    { name: 'Night', startTime: '11:00 PM', endTime: '7:00 AM', nextDay: true },
   ];
 
   shifts.forEach((shift, shiftIndex) => {
@@ -268,15 +283,15 @@ function generateBarTasks(date) {
 
   // Bar opens 2pm, closes at midnight (2am on weekends)
   const shifts = [
-    { startTime: '14:00', endTime: '19:00', staffCount: 2, nextDay: false },
-    { startTime: '19:00', endTime: '23:59', staffCount: 3, nextDay: false },
+    { startTime: '2:00 PM', endTime: '7:00 PM', staffCount: 2, nextDay: false },
+    { startTime: '7:00 PM', endTime: '11:59 PM', staffCount: 3, nextDay: false },
   ];
 
   // Add late night shift only on weekends (spans to next day)
   if (isWeekendDay) {
     shifts.push({ 
-      startTime: '00:00', 
-      endTime: '02:00', 
+      startTime: '12:00 AM', 
+      endTime: '2:00 AM', 
       staffCount: 2, 
       nextDay: true 
     });
@@ -318,8 +333,8 @@ function generateRoomServiceTasks(date) {
       title: formatStaffNames(morningStaff),
       department: 'room-services',
       itemName: roomGroup,
-      startTime: '06:00',
-      endTime: '14:00',
+      startTime: '6:00 AM',
+      endTime: '2:00 PM',
       date: formatDate(date),
       status: morningStaff.length >= 2 ? 'scheduled' : 'understaffed',
       assignedStaff: morningStaff.length > 0 ? morningStaff.join(', ') : null,
@@ -331,8 +346,8 @@ function generateRoomServiceTasks(date) {
       title: formatStaffNames(eveningStaff),
       department: 'room-services',
       itemName: roomGroup,
-      startTime: '14:00',
-      endTime: '22:00',
+      startTime: '2:00 PM',
+      endTime: '10:00 PM',
       date: formatDate(date),
       status: eveningStaff.length >= 2 ? 'scheduled' : 'understaffed',
       assignedStaff: eveningStaff.length > 0 ? eveningStaff.join(', ') : null,
@@ -345,8 +360,8 @@ function generateRoomServiceTasks(date) {
       title: formatStaffNames(nightStaff),
       department: 'room-services',
       itemName: roomGroup,
-      startTime: '22:00',
-      endTime: '06:00',
+      startTime: '10:00 PM',
+      endTime: '6:00 AM',
       date: formatDate(nextDay),
       status: nightStaff.length >= 1 ? 'scheduled' : 'available',
       assignedStaff: nightStaff.length > 0 ? nightStaff.join(', ') : null,

@@ -197,7 +197,7 @@
             <div class="flex items-center justify-between mb-6">
               <div>
                 <h3 class="text-lg font-semibold text-gray-900">Room Type Bookings</h3>
-                <p class="text-sm text-gray-600">Booking distribution across {{ totalRoomsCount }} rooms</p>
+                <p class="text-sm text-gray-600">Booking distribution by room type</p>
               </div>
               <div class="flex items-center gap-2">
                 <button 
@@ -424,7 +424,7 @@
                 </div>
                 <div class="flex items-center justify-between">
                   <span class="text-sm font-medium text-gray-700">Database Status</span>
-                  <span class="text-sm text-green-600 font-medium">Connected</span>
+                  <span class="text-sm text-green-600 font-medium">{{ databaseStatus }}</span>
                 </div>
                 <div class="flex items-center justify-between">
                   <span class="text-sm font-medium text-gray-700">Last Backup</span>
@@ -442,7 +442,7 @@
                 </div>
                 <div class="flex items-center justify-between">
                   <span class="text-sm font-medium text-gray-700">System Uptime</span>
-                  <span class="text-sm text-green-600 font-medium">99.9%</span>
+                  <span class="text-sm text-gray-600">N/A</span>
                 </div>
               </div>
             </div>
@@ -544,7 +544,14 @@ const adminUserCount = computed(() => {
 const totalRoomsCount = computed(() => {
   return occupancyStats.value?.totalRooms || 27
 })
+
+const databaseStatus = computed(() => {
+  // Check if we can fetch data successfully
+  return error.value ? 'Disconnected' : 'Connected'
+})
+
 const lastBackupDate = computed(() => {
+  // Calculate from current date (would ideally come from API)
   const date = new Date()
   date.setHours(date.getHours() - 6)
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
@@ -981,16 +988,19 @@ const roomTypeChartOptions = computed(() => ({
           show: true,
           total: {
             show: true,
-            label: 'Total Rooms',
+            label: 'Total Bookings',
             color: '#374151',
-            formatter: () => String(occupancyStats.value?.totalRooms || 27)
+            formatter: () => {
+              const total = roomPopularity.value.reduce((sum, item) => sum + (item.bookings_count || 0), 0)
+              return String(total || 0)
+            }
           }
         }
       }
     }
   },
   tooltip: {
-    y: { formatter: (val: number) => `${val} reservations` }
+    y: { formatter: (val: number) => `${val} ${val === 1 ? 'booking' : 'bookings'}` }
   }
 }))
 

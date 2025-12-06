@@ -1,14 +1,14 @@
 <template>
   <td
-    class="sticky left-0 z-10 bg-white px-6 py-2 border-r border-gray-200 outline outline-1 outline-gray-100 w-270px min-w-270px max-w-270px overflow-hidden text-ellipsis whitespace-nowrap h-48px group"
+    class="sticky left-0 z-10 bg-white px-3 py-1.5 border-r border-gray-200 outline outline-1 outline-gray-100 w-[200px] min-w-[200px] max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap h-[40px] group"
   >
-    <div class="flex items-center justify-between py-2">
+    <div class="flex items-center justify-between py-1">
       <div class="flex items-center">
         <div 
-          class="w-2 h-2 rounded-full mr-2 flex-shrink-0"
+          class="w-1.5 h-1.5 rounded-full mr-1.5 flex-shrink-0"
           :class="categoryDotColor"
         ></div>
-        <div class="text-sm font-medium text-gray-900">{{ item.name }}</div>
+        <div class="text-xs font-medium text-gray-900">{{ item.name }}</div>
       </div>
       
       <!-- 3-dot menu button -->
@@ -17,7 +17,7 @@
         class="hover:bg-gray-50 rounded text-gray-400 hover:text-gray-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
         title="View item details"
       >
-        <i class="pi pi-ellipsis-v text-sm"></i>
+        <i class="pi pi-ellipsis-v text-xs"></i>
       </button>
     </div>
   </td>
@@ -25,7 +25,7 @@
   <td
     v-for="(slot, slotIndex) in timeSlots"
     :key="`${item.id}-${slotIndex}-${slot.time}`"
-    class="px-0.5 py-2 outline outline-1 outline-gray-100 transition-colors hover:bg-green-100 w-61.5px min-w-61.5px max-w-61.5px overflow-hidden h-48px"
+    class="px-0.5 py-1.5 outline outline-1 outline-gray-100 transition-colors hover:bg-green-100 w-[50px] min-w-[50px] max-w-[50px] overflow-hidden h-[40px]"
     :class="{
       'bg-green-50': hoveredColumn === slot.time,
     }"
