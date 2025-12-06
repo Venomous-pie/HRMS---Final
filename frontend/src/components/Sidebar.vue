@@ -95,7 +95,7 @@
       <p class="text-xs pl-4 font-bold text-gray-700">Documents</p>
       <nav class="flex flex-col space-y-1 mr-7">
         <a
-          href="/booking"
+          href="http://localhost:8000/booking"
           class="flex items-center gap-2 px-4 py-1.5 rounded-full text-black hover:bg-gray-200 hover:text-gray-900 text-xs transition-colors no-underline"
         >
           <i class="pi pi-globe text-sm"></i>

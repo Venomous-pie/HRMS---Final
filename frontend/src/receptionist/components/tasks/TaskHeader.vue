@@ -1,19 +1,39 @@
 <template>
   <div class="flex items-center justify-between mb-4 px-2">
-    <!-- Date Dropdown -->
-    <div class="relative">
-      <div @click="() => { closeAllDropdowns(); showDateDropdown = !showDateDropdown }"
-        class="flex items-center text-center bg-gray-50 outline outline-1 outline-gray-200 rounded-full px-3 py-2 text-xs text-gray-700 cursor-pointer gap-2 w-full">
-        {{ dateDropdownLabel }}
-        <i class="pi pi-chevron-down right-2 pt-[0.2rem] text-gray-300 w-4 h-4"></i>
-      </div>
-      <div v-if="showDateDropdown"
-        class="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-max min-w-full max-h-60 overflow-y-auto">
-        <div v-for="date in availableDates" :key="date.value" @click="selectDate(date)"
-          class="px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer first:rounded-t-lg last:rounded-b-lg"
-          :class="{ 'bg-green-50 text-green-700': selectedDate === date.value }">
-          {{ date.label }}
+    <!-- Date Dropdown with Navigation -->
+    <div class="flex items-center gap-2">
+      <div class="relative">
+        <div @click="() => { closeAllDropdowns(); showDateDropdown = !showDateDropdown }"
+          class="flex items-center text-center bg-gray-50 outline outline-1 outline-gray-200 rounded-full px-3 py-2 text-xs text-gray-700 cursor-pointer gap-2 w-full">
+          {{ dateDropdownLabel }}
+          <i class="pi pi-chevron-down right-2 pt-[0.2rem] text-gray-300 w-4 h-4"></i>
         </div>
+        <div v-if="showDateDropdown"
+          class="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-max min-w-full max-h-60 overflow-y-auto">
+          <div v-for="date in availableDates" :key="date.value" @click="selectDate(date)"
+            class="px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer first:rounded-t-lg last:rounded-b-lg"
+            :class="{ 'bg-green-50 text-green-700': selectedDate === date.value }">
+            {{ date.label }}
+          </div>
+        </div>
+      </div>
+      <!-- Previous Date Button -->
+      <div
+        @click="navigateDate(-1)"
+        :disabled="!canNavigatePrevious"
+        class="flex items-center justify-center w-8 h-8 bg-gray-50 outline outline-1 outline-gray-200 rounded-full transition-colors hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+        title="Previous date"
+      >
+        <i class="pi pi-chevron-left text-gray-600 w-3 h-3"></i>
+      </div>
+      <!-- Next Date Button -->
+      <div
+        @click="navigateDate(1)"
+        :disabled="!canNavigateNext"
+        class="flex items-center justify-center w-8 h-8 bg-gray-50 outline outline-1 outline-gray-200 rounded-full transition-colors hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        title="Next date"
+      >
+        <i class="pi pi-chevron-right text-gray-600 w-3 h-3"></i>
       </div>
     </div>
 
@@ -142,6 +162,30 @@ const dateDropdownLabel = computed(() => {
   const date = props.availableDates.find(d => d.value === props.selectedDate)
   return date ? date.label : 'Select Date'
 })
+
+// Navigation helpers
+const currentDateIndex = computed(() => {
+  return props.availableDates.findIndex(d => d.value === props.selectedDate)
+})
+
+const canNavigatePrevious = computed(() => {
+  return currentDateIndex.value > 0
+})
+
+const canNavigateNext = computed(() => {
+  return currentDateIndex.value >= 0 && currentDateIndex.value < props.availableDates.length - 1
+})
+
+function navigateDate(direction: number) {
+  const currentIndex = currentDateIndex.value
+  if (currentIndex === -1) return
+  
+  const newIndex = currentIndex + direction
+  if (newIndex >= 0 && newIndex < props.availableDates.length) {
+    const newDate = props.availableDates[newIndex]
+    emit('dateChange', newDate.value)
+  }
+}
 
 const statusDropdownLabel = computed(() => {
   const option = statusOptions.find(o => o.value === props.selectedStatus)
