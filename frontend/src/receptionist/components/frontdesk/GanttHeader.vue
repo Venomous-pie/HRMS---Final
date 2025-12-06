@@ -27,7 +27,7 @@
         title="Jump to today"
         class="ml-3 px-3 py-1 text-xs bg-gray-50 text-gray-600 border border-gray-200 rounded-full hover:bg-gray-100 hover:border-gray-300 transition-colors cursor-pointer"
       >
-        <i class="pi pi-calendar-today text-gray-600 w-3 h-3"></i>
+        <i class="pi pi-calendar text-gray-600 w-3 h-3"></i>
         Today
       </button>
     </div>

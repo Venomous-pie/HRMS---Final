@@ -21,8 +21,7 @@
           />
           <h2 class="text-lg font-medium text-gray-900">Guest Checkout</h2>
           <span v-if="selectedReservation" class="text-xs text-gray-600">
-            {{ selectedReservation.guestName || selectedReservation.guest }} - Room
-            {{ selectedReservation.roomNumber }}
+            {{ selectedReservation.guestName || selectedReservation.guest }} - Room {{ selectedReservation.roomNumber }}
           </span>
         </div>
         <button
@@ -34,74 +33,71 @@
         </button>
       </div>
 
-      <div v-if="error" class="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-        <p class="text-sm text-red-800">{{ error }}</p>
+      <div v-if="error" class="p-6 pb-0">
+        <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-700">{{ error }}</p>
+        </div>
       </div>
 
       <!-- Bill Summary -->
       <div v-if="checkoutBill" class="p-6 border-b">
-        <h3 class="text-md font-semibold mb-4">Bill Summary</h3>
+        <h3 class="text-sm font-medium text-gray-900 mb-4">Bill Summary</h3>
         <div class="bg-gray-50 rounded-lg p-4 space-y-3">
           <!-- Stay Details -->
-          <div class="flex justify-between">
-            <span class="text-sm text-gray-600">Stay Period:</span>
-            <span class="text-sm"
-              >{{ formatDate(checkoutBill.checkInDate) }} -
-              {{ formatDate(checkoutBill.checkOutDate) }}</span
-            >
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-600">Stay Period:</span>
+            <span class="text-gray-900">{{ formatDate(checkoutBill.checkInDate) }} - {{ formatDate(checkoutBill.checkOutDate) }}</span>
           </div>
-          <div class="flex justify-between">
-            <span class="text-sm text-gray-600">Nights:</span>
-            <span class="text-sm">{{ checkoutBill.nights }}</span>
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-600">Nights:</span>
+            <span class="text-gray-900">{{ checkoutBill.nights }}</span>
           </div>
           <!-- Room Charges -->
           <div class="border-t pt-2">
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600"
-                >Room Rate ({{ checkoutBill.nights }} nights):</span
-              >
-              <span class="text-sm">{{ formatCurrency(checkoutBill.subtotal) }}</span>
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-600">Room Rate ({{ checkoutBill.nights }} nights):</span>
+              <span class="text-gray-900">{{ formatCurrency(checkoutBill.subtotal) }}</span>
             </div>
           </div>
           <!-- Extra Charges -->
           <div v-if="checkoutBill.extraCharges.length > 0" class="border-t pt-2">
-            <h4 class="text-sm font-medium mb-1">Extra Charges:</h4>
+            <h4 class="text-xs font-medium text-gray-700 mb-1">Extra Charges:</h4>
             <div
               v-for="charge in checkoutBill.extraCharges"
               :key="charge.id"
               class="flex justify-between text-sm"
             >
               <span class="text-gray-600">{{ charge.description }}</span>
-              <span>{{ formatCurrency(charge.amount) }}</span>
+              <span class="text-gray-900">{{ formatCurrency(charge.amount) }}</span>
             </div>
           </div>
           <!-- Totals -->
           <div class="border-t pt-2 space-y-1">
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600">Subtotal:</span>
-              <span class="text-sm">{{
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-600">Subtotal:</span>
+              <span class="text-gray-900">{{
                 formatCurrency(
                   checkoutBill.subtotal +
                     checkoutBill.extraCharges.reduce((sum, c) => sum + c.amount, 0),
                 )
               }}</span>
             </div>
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600">Taxes (12%):</span>
-              <span class="text-sm">{{ formatCurrency(checkoutBill.taxes) }}</span>
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-600">Taxes (12%):</span>
+              <span class="text-gray-900">{{ formatCurrency(checkoutBill.taxes) }}</span>
             </div>
-            <div class="flex justify-between font-bold text-sm">
-              <span>Total Amount:</span>
-              <span>{{ formatCurrency(checkoutBill.totalAmount) }}</span>
+            <div class="flex justify-between text-sm font-bold">
+              <span class="text-gray-900">Total Amount:</span>
+              <span class="text-gray-900">{{ formatCurrency(checkoutBill.totalAmount) }}</span>
             </div>
             <div
               v-if="checkoutBill.paidAmount > 0"
-              class="flex justify-between text-green-600 text-sm"
+              class="flex justify-between text-sm text-green-600"
             >
               <span>Paid Amount:</span>
               <span>{{ formatCurrency(checkoutBill.paidAmount) }}</span>
             </div>
-            <div class="flex justify-between font-bold text-sm text-red-600">
+            <div class="flex justify-between text-sm font-bold text-red-600">
               <span>Balance Due:</span>
               <span>{{ formatCurrency(checkoutBill.balanceAmount) }}</span>
             </div>
@@ -111,8 +107,8 @@
 
       <!-- Extra Charges Section -->
       <div class="p-6">
-        <div class="flex items-center justify-between">
-          <h3 class="text-md font-semibold">Additional Charges</h3>
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-medium text-gray-900">Additional Charges</h3>
           <Custombutton
             @click="showAddChargeForm = !showAddChargeForm"
             width="130px"
@@ -124,30 +120,30 @@
         <div v-if="showAddChargeForm" class="bg-gray-50 rounded-lg p-6 my-4">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Description</label>
               <input
                 v-model="newCharge.description"
                 type="text"
-                class="placeholder:text-xs w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
                 placeholder="e.g., Minibar, Late checkout"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Amount</label>
               <input
                 v-model.number="newCharge.amount"
                 type="number"
                 min="0"
                 step="1"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
                 placeholder="0.00"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Category</label>
               <select
                 v-model="newCharge.category"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
               >
                 <option value="minibar">Minibar</option>
                 <option value="room_service">Room Service</option>
@@ -179,7 +175,7 @@
         <!-- Late Checkout Warning -->
         <div
           v-if="isLateCheckout"
-          class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4"
+          class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4"
         >
           <div class="flex">
             <svg class="w-5 h-5 text-yellow-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -201,15 +197,15 @@
       </div>
 
       <!-- Payment Section -->
-      <div class="px-6 border-b">
-        <h3 class="text-md font-semibold mb-4">Payment Details</h3>
+      <div class="p-6 border-b">
+        <h3 class="text-sm font-medium text-gray-900 mb-4">Payment Details</h3>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Payment Method</label>
             <select
               v-model="checkoutForm.paymentMethod"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
             >
               <option value="cash">Cash</option>
               <option value="credit_card">Credit Card</option>
@@ -219,24 +215,24 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Payment Amount</label>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Payment Amount</label>
             <input
               v-model.number="checkoutForm.paymentAmount"
               type="number"
               min="0"
               step="0.01"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
               placeholder="0.00"
             />
           </div>
         </div>
 
         <div class="mt-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Notes</label>
           <textarea
             v-model="checkoutForm.notes"
             rows="3"
-            class="w-full px-3 py-2 border border-gray-300 placeholder:text-sm rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
             placeholder="Any additional notes or comments..."
           ></textarea>
         </div>
@@ -249,27 +245,27 @@
               type="checkbox"
               class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            <span class="ml-2 text-sm text-gray-700">Room damage assessment required</span>
+            <span class="ml-2 text-xs text-gray-700">Room damage assessment required</span>
           </label>
 
           <div v-if="checkoutForm.damageAssessment" class="mt-3 space-y-3">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Damage Description</label>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Damage Description</label>
               <textarea
                 v-model="checkoutForm.damageDescription"
                 rows="2"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
                 placeholder="Describe the damage..."
               ></textarea>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Damage Amount</label>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Damage Amount</label>
               <input
                 v-model.number="checkoutForm.damageAmount"
                 type="number"
                 min="0"
                 step="0.01"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
                 placeholder="0.00"
               />
             </div>

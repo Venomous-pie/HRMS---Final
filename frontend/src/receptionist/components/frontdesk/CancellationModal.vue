@@ -19,54 +19,60 @@
             @click="goBackToDetails"
           />
           <h2 class="text-lg font-medium text-gray-900">Cancel Reservation</h2>
-          <span v-if="selectedReservation" class="text-sm text-gray-600">
+          <span v-if="selectedReservation" class="text-xs text-gray-600">
             {{ selectedReservation.guestName || selectedReservation.guest }} - Room {{ selectedReservation.roomNumber }}
           </span>
         </div>
-        <button @click="closeCancellationModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+        <button 
+          @click="closeCancellationModal" 
+          class="text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-full hover:bg-gray-100"
+          type="button"
+        >
           <i class="pi pi-times w-5 h-5"></i>
         </button>
       </div>
 
-      <div v-if="error" class="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-        <p class="text-red-800">{{ error }}</p>
+      <div v-if="error" class="p-6 pb-0">
+        <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p class="text-sm text-red-700">{{ error }}</p>
+        </div>
       </div>
 
       <!-- Cancellation Details -->
       <div v-if="cancellationCalculation && selectedReservation" class="p-6">
         <!-- Reservation Summary -->
-        <div class="bg-gray-50 rounded-lg p-4 mb-6">
-          <h3 class="font-semibold text-sm mb-3">Reservation Details</h3>
-          <div class="space-y-2 text-sm">
-            <div class="flex justify-between">
+        <div class="mb-6">
+          <h3 class="text-sm font-medium text-gray-900 mb-4">Reservation Details</h3>
+          <div class="bg-gray-50 rounded-lg p-4 space-y-2">
+            <div class="flex justify-between text-sm">
               <span class="text-gray-600">Check-in:</span>
-              <span>{{ formatDate(selectedReservation.checkIn) }}</span>
+              <span class="text-gray-900">{{ formatDate(selectedReservation.checkIn) }}</span>
             </div>
-            <div class="flex justify-between">
+            <div class="flex justify-between text-sm">
               <span class="text-gray-600">Check-out:</span>
-              <span>{{ formatDate(selectedReservation.checkOut) }}</span>
+              <span class="text-gray-900">{{ formatDate(selectedReservation.checkOut) }}</span>
             </div>
-            <div class="flex justify-between">
+            <div class="flex justify-between text-sm">
               <span class="text-gray-600">Room:</span>
-              <span>{{ selectedReservation.roomNumber }}</span>
+              <span class="text-gray-900">{{ selectedReservation.roomNumber }}</span>
             </div>
-            <div class="flex justify-between">
+            <div class="flex justify-between text-sm">
               <span class="text-gray-600">Guests:</span>
-              <span>{{ selectedReservation.numGuest }}</span>
+              <span class="text-gray-900">{{ selectedReservation.numGuest }}</span>
             </div>
-            <div class="flex justify-between font-medium">
+            <div class="flex justify-between text-sm font-medium">
               <span class="text-gray-600">Total Amount:</span>
-              <span>{{ formatCurrency(selectedReservation.totalPrice) }}</span>
+              <span class="text-gray-900">{{ formatCurrency(selectedReservation.totalPrice) }}</span>
             </div>
           </div>
         </div>
 
         <!-- Cancellation Policy Info -->
         <div v-if="cancellationCalculation.canCancel" class="mb-6">
-          <h3 class="font-semibold text-sm mb-3">Cancellation Policy</h3>
+          <h3 class="text-sm font-medium text-gray-900 mb-4">Cancellation Policy</h3>
           
           <!-- Policy Summary -->
-          <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <div class="flex items-start">
               <svg class="w-5 h-5 text-blue-400 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
@@ -84,25 +90,25 @@
 
           <!-- Time Remaining -->
           <div class="bg-gray-50 rounded-lg p-4 mb-4">
-            <div class="flex justify-between items-center">
+            <div class="flex justify-between items-center text-sm">
               <span class="text-gray-600">Time until check-in:</span>
-              <span class="font-medium">{{ formatTimeRemaining(cancellationCalculation.hoursUntilCheckIn) }}</span>
+              <span class="font-medium text-gray-900">{{ formatTimeRemaining(cancellationCalculation.hoursUntilCheckIn) }}</span>
             </div>
           </div>
 
           <!-- Financial Breakdown -->
           <div class="bg-gray-50 rounded-lg p-4 mb-6">
-            <h4 class="font-medium text-sm mb-3">Financial Impact</h4>
+            <h4 class="text-sm font-medium text-gray-900 mb-3">Financial Impact</h4>
             <div class="space-y-2">
-              <div class="flex justify-between">
+              <div class="flex justify-between text-sm">
                 <span class="text-gray-600">Original Amount:</span>
-                <span>{{ formatCurrency(cancellationCalculation.originalAmount) }}</span>
+                <span class="text-gray-900">{{ formatCurrency(cancellationCalculation.originalAmount) }}</span>
               </div>
-              <div class="flex justify-between" :class="cancellationCalculation.cancellationFee > 0 ? 'text-red-600' : 'text-green-600'">
+              <div class="flex justify-between text-sm" :class="cancellationCalculation.cancellationFee > 0 ? 'text-red-600' : 'text-green-600'">
                 <span>Cancellation Fee:</span>
                 <span>{{ formatCurrency(cancellationCalculation.cancellationFee) }}</span>
               </div>
-              <div class="flex justify-between font-bold text-sm" :class="cancellationCalculation.refundAmount > 0 ? 'text-green-600' : 'text-red-600'">
+              <div class="flex justify-between text-sm font-bold" :class="cancellationCalculation.refundAmount > 0 ? 'text-green-600' : 'text-red-600'">
                 <span>Refund Amount:</span>
                 <span>{{ formatCurrency(cancellationCalculation.refundAmount) }}</span>
               </div>
@@ -110,7 +116,7 @@
           </div>
 
           <!-- Free Cancellation Badge -->
-          <div v-if="isFreeCancellation(selectedReservation)" class="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
+          <div v-if="isFreeCancellation(selectedReservation)" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
             <div class="flex items-center">
               <svg class="w-5 h-5 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
@@ -122,7 +128,7 @@
 
         <!-- Cannot Cancel Warning -->
         <div v-else class="mb-6">
-          <div class="bg-red-50 border border-red-200 rounded-md p-4">
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4">
             <div class="flex">
               <svg class="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
@@ -139,13 +145,13 @@
 
         <!-- Cancellation Reason -->
         <div v-if="cancellationCalculation.canCancel" class="mb-6">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-xs font-medium text-gray-700 mb-1">
             Reason for Cancellation <span class="text-red-500">*</span>
           </label>
           <textarea
             v-model="cancellationReason"
             rows="3"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
             placeholder="Please provide a reason for cancellation..."
             required
           ></textarea>
@@ -159,7 +165,7 @@
               type="checkbox"
               class="rounded border-gray-300 text-red-600 focus:ring-red-500 mt-1"
             />
-            <span class="ml-2 text-sm text-gray-700">
+            <span class="ml-2 text-xs text-gray-700">
               I understand that this action cannot be undone and agree to the cancellation terms above.
               <span v-if="cancellationCalculation.cancellationFee > 0" class="text-red-600 font-medium">
                 A cancellation fee of {{ formatCurrency(cancellationCalculation.cancellationFee) }} will be charged.

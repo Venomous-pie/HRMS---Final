@@ -195,6 +195,57 @@
                   {{ errors.idDocument }}
                 </p>
               </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">
+                  Nationality
+                </label>
+                <div class="relative">
+                  <input
+                    v-model="nationalitySearch"
+                    type="text"
+                    class="capitalize w-full px-3 py-2 pr-8 text-xs border border-gray-300 rounded-lg focus:border-green-500"
+                    placeholder="Search nationality..."
+                    @input="handleNationalitySearch"
+                    @focus="showNationalityDropdown = true"
+                    @blur="handleNationalityBlur"
+                  />
+                  <i class="pi pi-chevron-down absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+                  
+                  <!-- Dropdown -->
+                  <div
+                    v-if="showNationalityDropdown && filteredNationalities.length > 0"
+                    class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+                  >
+                    <div
+                      v-for="nationality in filteredNationalities"
+                      :key="nationality"
+                      @mousedown.prevent="selectNationality(nationality)"
+                      class="px-3 py-2 text-xs hover:bg-gray-100 cursor-pointer capitalize"
+                    >
+                      {{ nationality }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">
+                  Blacklist Status
+                </label>
+                <input
+                  :value="guestBlacklistStatus"
+                  type="text"
+                  readonly
+                  class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed"
+                  :class="{
+                    'text-red-700 bg-red-50 border-red-200': guestBlacklistStatus === 'Blacklisted',
+                    'text-green-700 bg-green-50 border-green-200': guestBlacklistStatus === 'Not Blacklisted',
+                    'text-gray-500': guestBlacklistStatus === 'Unknown'
+                  }"
+                  placeholder="Enter ID Document or Email to check"
+                />
+              </div>
             </div>
 
             <div class="mt-4">
@@ -602,6 +653,97 @@ const { modalState, submitReservation } = useReservationSubmission(
   },
 )
 
+// Nationality list
+const nationalities = [
+  'Afghan', 'Albanian', 'Algerian', 'Argentine', 'Australian', 'Austrian', 'Bangladeshi',
+  'Belgian', 'Brazilian', 'British', 'Bulgarian', 'Cambodian', 'Canadian', 'Chilean',
+  'Chinese', 'Colombian', 'Croatian', 'Czech', 'Danish', 'Dutch', 'Egyptian', 'Estonian',
+  'Filipino', 'Finnish', 'French', 'German', 'Greek', 'Hungarian', 'Indian', 'Indonesian',
+  'Iranian', 'Iraqi', 'Irish', 'Israeli', 'Italian', 'Japanese', 'Jordanian', 'Kenyan',
+  'Korean', 'Kuwaiti', 'Lebanese', 'Malaysian', 'Mexican', 'Moroccan', 'Nepalese',
+  'New Zealander', 'Nigerian', 'Norwegian', 'Pakistani', 'Peruvian', 'Polish', 'Portuguese',
+  'Qatari', 'Romanian', 'Russian', 'Saudi Arabian', 'Singaporean', 'South African',
+  'Spanish', 'Sri Lankan', 'Swedish', 'Swiss', 'Syrian', 'Taiwanese', 'Thai', 'Turkish',
+  'Ukrainian', 'Emirati', 'American', 'Uruguayan', 'Venezuelan', 'Vietnamese', 'Yemeni'
+].sort()
+
+// Nationality search functionality
+const nationalitySearch = ref('')
+const showNationalityDropdown = ref(false)
+const filteredNationalities = computed(() => {
+  if (!nationalitySearch.value) return nationalities.slice(0, 10) // Show first 10 when empty
+  const search = nationalitySearch.value.toLowerCase()
+  return nationalities.filter(n => n.toLowerCase().includes(search)).slice(0, 20)
+})
+
+const handleNationalitySearch = () => {
+  showNationalityDropdown.value = true
+}
+
+const handleNationalityBlur = () => {
+  // Delay to allow click on dropdown item
+  setTimeout(() => {
+    showNationalityDropdown.value = false
+  }, 200)
+}
+
+const selectNationality = (nationality: string) => {
+  formData.value.nationality = nationality
+  nationalitySearch.value = nationality
+  showNationalityDropdown.value = false
+}
+
+// Watch formData.nationality to sync with search input
+watch(() => formData.value.nationality, (newVal) => {
+  if (newVal && !nationalitySearch.value) {
+    nationalitySearch.value = newVal
+  }
+})
+
+// Guest blacklist checking
+const guestBlacklistStatus = ref('Unknown')
+let guestCheckTimer: number | null = null
+
+const checkGuestBlacklist = async () => {
+  const idDocument = formData.value.idDocument?.trim()
+  const email = formData.value.email?.trim()
+  
+  if (!idDocument && !email) {
+    guestBlacklistStatus.value = 'Unknown'
+    return
+  }
+
+  try {
+    // Check if guest exists by ID document or email
+    const { apiFetch } = await import('@/services/apiClient')
+    const guests = await apiFetch<any[]>('/guests')
+    
+    const matchingGuest = guests.find((g: any) => 
+      (idDocument && g.idDocument?.toUpperCase() === idDocument.toUpperCase()) ||
+      (email && g.email?.toLowerCase() === email.toLowerCase())
+    )
+
+    if (matchingGuest) {
+      guestBlacklistStatus.value = matchingGuest.isBlacklisted === true ? 'Blacklisted' : 'Not Blacklisted'
+    } else {
+      guestBlacklistStatus.value = 'Unknown'
+    }
+  } catch (error) {
+    console.error('Error checking guest blacklist:', error)
+    guestBlacklistStatus.value = 'Unknown'
+  }
+}
+
+// Watch for ID document or email changes to check blacklist
+watch([() => formData.value.idDocument, () => formData.value.email], () => {
+  if (guestCheckTimer) {
+    clearTimeout(guestCheckTimer)
+  }
+  guestCheckTimer = window.setTimeout(() => {
+    checkGuestBlacklist()
+  }, 500) // Debounce for 500ms
+})
+
 import { updateReservation } from '@/services/reservations'
 const submitUpdateReservation = async () => {
   if (!validateFormWithDates()) return
@@ -749,6 +891,9 @@ watch(
       } else {
         // New reservation flow
         resetForm()
+        nationalitySearch.value = ''
+        guestBlacklistStatus.value = 'Unknown'
+        showNationalityDropdown.value = false
         setTimeout(() => {
           // Prioritize prefilled data from grid clicks over drafts
           if (props.prefilledData) {
@@ -757,14 +902,19 @@ watch(
             hasDraft.value = false
             draftRestored.value = false
             filterAvailableRooms()
+            // Check blacklist after applying prefilled data
+            setTimeout(() => checkGuestBlacklist(), 100)
           } else {
             // No prefilled data - try to restore draft
             const draft = loadDraft()
             if (draft) {
               Object.assign(formData.value, draft)
+              nationalitySearch.value = draft.nationality || ''
               draftRestored.value = true
               hasDraft.value = true
               filterAvailableRooms()
+              // Check blacklist after restoring draft
+              setTimeout(() => checkGuestBlacklist(), 100)
             } else {
               hasDraft.value = false
               draftRestored.value = false

@@ -20,5 +20,6 @@ export default (sequelize) => {
     totalSpent: { type: DataTypes.INTEGER, allowNull: true },
     notes: { type: DataTypes.STRING, allowNull: true },
     orderCount: { type: DataTypes.INTEGER, allowNull: true },
+    isBlacklisted: { type: DataTypes.BOOLEAN, allowNull: true, defaultValue: false },
   });
 };

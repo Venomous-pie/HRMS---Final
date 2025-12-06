@@ -785,6 +785,7 @@ app.post("/api/reserve-room", authenticateToken, requirePermission('RESERVATIONS
     phone,
     address,
     idDocument,
+    nationality,
     numGuest,
     checkIn,
     checkOut,
@@ -867,7 +868,7 @@ app.post("/api/reserve-room", authenticateToken, requirePermission('RESERVATIONS
   const t = await sequelize.transaction();
 
   try {
-    const [guest] = await Guest.findOrCreate({
+    const [guest, guestCreated] = await Guest.findOrCreate({
       where: { idDocument, email },
       defaults: {
         phone,
@@ -876,9 +877,90 @@ app.post("/api/reserve-room", authenticateToken, requirePermission('RESERVATIONS
         middleName: middleName || null,
         lastName,
         address,
+        nationality: nationality || null,
+        totalStays: 0,
+        totalSpent: 0,
       },
       transaction: t,
     });
+
+    // If guest already exists, update their information if provided
+    if (!guestCreated) {
+      const updateData = {};
+      if (nationality) updateData.nationality = nationality;
+      if (phone) updateData.phone = phone;
+      if (firstName) updateData.firstName = firstName;
+      if (lastName) updateData.lastName = lastName;
+      if (middleName !== undefined) updateData.middleName = middleName || null;
+      if (address) updateData.address = address;
+      
+      if (Object.keys(updateData).length > 0) {
+        await guest.update(updateData, { transaction: t });
+      }
+
+      // Check if guest has previous checked-out reservations
+      // Find the most recent checked-out reservation
+      const previousReservations = await Reservation.findAll({
+        where: {
+          GuestId: guest.id,
+          status: 'checkedOut'
+        },
+        order: [['checkOut', 'DESC']],
+        limit: 1,
+        transaction: t
+      });
+
+      // Check if guest checked out last year or earlier (returning guest)
+      let isReturningGuest = false;
+      if (previousReservations.length > 0) {
+        const lastCheckOut = new Date(previousReservations[0].checkOut);
+        const oneYearAgo = new Date();
+        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+        
+        // Guest is returning if they checked out at least once before (any time in the past)
+        isReturningGuest = lastCheckOut < new Date();
+      }
+
+      // Get all checked-out reservations for this guest to calculate stats
+      const allCheckedOutReservations = await Reservation.findAll({
+        where: {
+          GuestId: guest.id,
+          status: 'checkedOut'
+        },
+        transaction: t
+      });
+
+      // Calculate total stays (count of checked-out reservations)
+      const totalStays = allCheckedOutReservations.length;
+
+      // Calculate total spent from all checked-out reservations
+      const totalSpent = allCheckedOutReservations.reduce((sum, res) => {
+        return sum + (parseFloat(res.totalPrice) || 0);
+      }, 0);
+
+      // Get the most recent check-out date
+      let lastVisited = null;
+      if (allCheckedOutReservations.length > 0) {
+        const sortedByCheckOut = [...allCheckedOutReservations].sort((a, b) => {
+          return new Date(b.checkOut) - new Date(a.checkOut);
+        });
+        lastVisited = sortedByCheckOut[0].checkOut;
+      }
+
+      // Update guest statistics
+      await guest.update({
+        totalStays: totalStays,
+        totalSpent: totalSpent,
+        lastVisited: lastVisited
+      }, { transaction: t });
+    } else {
+      // New guest - initialize stats
+      await guest.update({
+        totalStays: 0,
+        totalSpent: 0,
+        lastVisited: null
+      }, { transaction: t });
+    }
 
     const nights = calculateNights(checkInDate, checkOutDate);
     const nightlyRate = room.pricePerNight || room.RoomType.basePrice || 0;
@@ -1408,6 +1490,42 @@ app.post("/api/reservations/:id/checkout", authenticateToken, requireAnyPermissi
       notes: notes ? `${reservation.notes || ''}\nCheckout: ${notes}`.trim() : reservation.notes
     }, { transaction: t });
 
+    // Update guest statistics when checking out
+    if (reservation.Guest) {
+      // Get all checked-out reservations for this guest (including the current one)
+      const allCheckedOutReservations = await Reservation.findAll({
+        where: {
+          GuestId: reservation.GuestId,
+          status: 'checkedOut'
+        },
+        transaction: t
+      });
+
+      // Calculate total stays (count of checked-out reservations)
+      const totalStays = allCheckedOutReservations.length;
+
+      // Calculate total spent from all checked-out reservations
+      const totalSpent = allCheckedOutReservations.reduce((sum, res) => {
+        return sum + (parseFloat(res.totalPrice) || 0);
+      }, 0);
+
+      // Get the most recent check-out date
+      let lastVisited = null;
+      if (allCheckedOutReservations.length > 0) {
+        const sortedByCheckOut = [...allCheckedOutReservations].sort((a, b) => {
+          return new Date(b.checkOut) - new Date(a.checkOut);
+        });
+        lastVisited = sortedByCheckOut[0].checkOut;
+      }
+
+      // Update guest statistics
+      await reservation.Guest.update({
+        totalStays: totalStays,
+        totalSpent: totalSpent,
+        lastVisited: lastVisited
+      }, { transaction: t });
+    }
+
     // Update room status to dirty (needs housekeeping)
     if (reservation.Room) {
       await reservation.Room.update({
@@ -1835,6 +1953,409 @@ app.post("/api/invoices/generate", authenticateToken, requireAnyPermission(['PAY
     await t.rollback();
     console.error('Error generating invoices:', error);
     return res.status(500).json({ error: `Failed to generate invoices: ${error.message}` });
+  }
+});
+
+// ==================== CASHBOOK ENDPOINTS ====================
+
+// Get daily cash register summary
+app.get("/api/cashbook/daily-register", authenticateToken, requireAnyPermission(['PAYMENTS_VIEW_ALL', 'PAYMENTS_RECORD']), async (req, res) => {
+  try {
+    const { date } = req.query;
+    const targetDate = date ? new Date(date) : new Date();
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Get previous day's closing balance (opening balance for today)
+    const previousDay = new Date(targetDate);
+    previousDay.setDate(previousDay.getDate() - 1);
+    const prevStartOfDay = new Date(previousDay);
+    prevStartOfDay.setHours(0, 0, 0, 0);
+    const prevEndOfDay = new Date(previousDay);
+    prevEndOfDay.setHours(23, 59, 59, 999);
+
+    // Get previous day's payments to calculate opening balance
+    // Use createdAt if paymentDate is null
+    const prevDayPayments = await Payment.findAll({
+      where: {
+        [Op.or]: [
+          {
+            paymentDate: {
+              [Op.between]: [prevStartOfDay, prevEndOfDay]
+            }
+          },
+          {
+            paymentDate: null,
+            createdAt: {
+              [Op.between]: [prevStartOfDay, prevEndOfDay]
+            }
+          }
+        ],
+        status: 'completed',
+        paymentMethod: 'cash'
+      }
+    });
+
+    const prevDayCashIn = prevDayPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+    
+    // Get previous day's cash transactions (if any) - for now use 0 as default opening
+    const openingBalance = prevDayCashIn || 0;
+
+    // Get today's cash payments (cash in)
+    // Use createdAt if paymentDate is null
+    const cashInPayments = await Payment.findAll({
+      where: {
+        [Op.or]: [
+          {
+            paymentDate: {
+              [Op.between]: [startOfDay, endOfDay]
+            }
+          },
+          {
+            paymentDate: null,
+            createdAt: {
+              [Op.between]: [startOfDay, endOfDay]
+            }
+          }
+        ],
+        status: 'completed',
+        paymentMethod: 'cash'
+      }
+    });
+
+    const cashIn = cashInPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+
+    // Cash out would be from refunds or other cash transactions
+    // For now, we'll calculate from refunded payments
+    // Use createdAt if paymentDate is null
+    const cashOutPayments = await Payment.findAll({
+      where: {
+        [Op.or]: [
+          {
+            paymentDate: {
+              [Op.between]: [startOfDay, endOfDay]
+            }
+          },
+          {
+            paymentDate: null,
+            createdAt: {
+              [Op.between]: [startOfDay, endOfDay]
+            }
+          }
+        ],
+        status: 'refunded',
+        paymentMethod: 'cash'
+      }
+    });
+
+    const cashOut = cashOutPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+
+    const closingBalance = openingBalance + cashIn - cashOut;
+    const transactionCount = cashInPayments.length + cashOutPayments.length;
+
+    res.json({
+      date: targetDate.toISOString().split('T')[0],
+      openingBalance,
+      cashIn,
+      cashOut,
+      closingBalance,
+      transactionCount
+    });
+
+  } catch (error) {
+    console.error('Error fetching daily cash register:', error);
+    return res.status(500).json({ error: `Failed to fetch daily cash register: ${error.message}` });
+  }
+});
+
+// Get cash transactions for a date
+app.get("/api/cashbook/transactions", authenticateToken, requireAnyPermission(['PAYMENTS_VIEW_ALL', 'PAYMENTS_RECORD']), async (req, res) => {
+  try {
+    const { date } = req.query;
+    const targetDate = date ? new Date(date) : new Date();
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Get cash payments (cash in)
+    // Use createdAt if paymentDate is null
+    const cashInPayments = await Payment.findAll({
+      where: {
+        [Op.or]: [
+          {
+            paymentDate: {
+              [Op.between]: [startOfDay, endOfDay]
+            }
+          },
+          {
+            paymentDate: null,
+            createdAt: {
+              [Op.between]: [startOfDay, endOfDay]
+            }
+          }
+        ],
+        status: 'completed',
+        paymentMethod: 'cash'
+      },
+      include: [
+        {
+          model: Guest,
+          attributes: ['firstName', 'lastName']
+        },
+        {
+          model: Reservation,
+          attributes: ['id']
+        }
+      ],
+      order: [['paymentDate', 'DESC'], ['createdAt', 'DESC']]
+    });
+
+    // Get cash refunds (cash out)
+    // Use createdAt if paymentDate is null
+    const cashOutPayments = await Payment.findAll({
+      where: {
+        [Op.or]: [
+          {
+            paymentDate: {
+              [Op.between]: [startOfDay, endOfDay]
+            }
+          },
+          {
+            paymentDate: null,
+            createdAt: {
+              [Op.between]: [startOfDay, endOfDay]
+            }
+          }
+        ],
+        status: 'refunded',
+        paymentMethod: 'cash'
+      },
+      include: [
+        {
+          model: Guest,
+          attributes: ['firstName', 'lastName']
+        },
+        {
+          model: Reservation,
+          attributes: ['id']
+        }
+      ],
+      order: [['paymentDate', 'DESC'], ['createdAt', 'DESC']]
+    });
+
+    const transactions = [];
+
+    // Map cash in payments
+    cashInPayments.forEach(payment => {
+      const transactionDate = payment.paymentDate || payment.createdAt;
+      transactions.push({
+        id: payment.id,
+        type: 'in',
+        amount: parseFloat(payment.amount),
+        description: `Payment from ${payment.Guest ? `${payment.Guest.firstName} ${payment.Guest.lastName}` : 'Guest'}`,
+        category: 'Payment',
+        transactionDate: transactionDate,
+        notes: payment.notes || undefined,
+        createdAt: payment.createdAt,
+        updatedAt: payment.updatedAt
+      });
+    });
+
+    // Map cash out payments (refunds)
+    cashOutPayments.forEach(payment => {
+      const transactionDate = payment.paymentDate || payment.createdAt;
+      transactions.push({
+        id: payment.id,
+        type: 'out',
+        amount: parseFloat(payment.amount),
+        description: `Refund to ${payment.Guest ? `${payment.Guest.firstName} ${payment.Guest.lastName}` : 'Guest'}`,
+        category: 'Refund',
+        transactionDate: transactionDate,
+        notes: payment.notes || undefined,
+        createdAt: payment.createdAt,
+        updatedAt: payment.updatedAt
+      });
+    });
+
+    res.json(transactions);
+
+  } catch (error) {
+    console.error('Error fetching cash transactions:', error);
+    return res.status(500).json({ error: `Failed to fetch cash transactions: ${error.message}` });
+  }
+});
+
+// Get petty cash information
+app.get("/api/cashbook/petty-cash", authenticateToken, requireAnyPermission(['PAYMENTS_VIEW_ALL', 'PAYMENTS_RECORD']), async (req, res) => {
+  try {
+    // Petty cash is not yet implemented in the database
+    // Return null with 200 status to indicate feature not available (not an error)
+    return res.status(200).json(null);
+  } catch (error) {
+    console.error('Error fetching petty cash:', error);
+    return res.status(500).json({ error: `Failed to fetch petty cash: ${error.message}` });
+  }
+});
+
+// Get shift handover records
+app.get("/api/cashbook/shift-handovers", authenticateToken, requireAnyPermission(['PAYMENTS_VIEW_ALL', 'PAYMENTS_RECORD']), async (req, res) => {
+  try {
+    // Shift handover is not yet implemented in the database
+    // Return empty array for now
+    return res.json([]);
+  } catch (error) {
+    console.error('Error fetching shift handovers:', error);
+    return res.status(500).json({ error: `Failed to fetch shift handovers: ${error.message}` });
+  }
+});
+
+// Get cash reconciliation
+app.get("/api/cashbook/reconciliation", authenticateToken, requireAnyPermission(['PAYMENTS_VIEW_ALL', 'PAYMENTS_RECORD']), async (req, res) => {
+  try {
+    const { date } = req.query;
+    const targetDate = date ? new Date(date) : new Date();
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Get all cash payments for the day
+    // Use createdAt if paymentDate is null
+    const cashPayments = await Payment.findAll({
+      where: {
+        [Op.or]: [
+          {
+            paymentDate: {
+              [Op.between]: [startOfDay, endOfDay]
+            }
+          },
+          {
+            paymentDate: null,
+            createdAt: {
+              [Op.between]: [startOfDay, endOfDay]
+            }
+          }
+        ],
+        paymentMethod: 'cash',
+        status: 'completed'
+      }
+    });
+
+    const cashIn = cashPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+    
+    // Get cash refunds
+    // Use createdAt if paymentDate is null
+    const cashRefunds = await Payment.findAll({
+      where: {
+        [Op.or]: [
+          {
+            paymentDate: {
+              [Op.between]: [startOfDay, endOfDay]
+            }
+          },
+          {
+            paymentDate: null,
+            createdAt: {
+              [Op.between]: [startOfDay, endOfDay]
+            }
+          }
+        ],
+        paymentMethod: 'cash',
+        status: 'refunded'
+      }
+    });
+
+    const cashOut = cashRefunds.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+
+    // Calculate expected cash (this would normally come from register count)
+    // For now, we'll use the calculated closing balance
+    const previousDay = new Date(targetDate);
+    previousDay.setDate(previousDay.getDate() - 1);
+    const prevStartOfDay = new Date(previousDay);
+    prevStartOfDay.setHours(0, 0, 0, 0);
+    const prevEndOfDay = new Date(previousDay);
+    prevEndOfDay.setHours(23, 59, 59, 999);
+
+    // Use createdAt if paymentDate is null
+    const prevDayPayments = await Payment.findAll({
+      where: {
+        [Op.or]: [
+          {
+            paymentDate: {
+              [Op.between]: [prevStartOfDay, prevEndOfDay]
+            }
+          },
+          {
+            paymentDate: null,
+            createdAt: {
+              [Op.between]: [prevStartOfDay, prevEndOfDay]
+            }
+          }
+        ],
+        status: 'completed',
+        paymentMethod: 'cash'
+      }
+    });
+
+    const openingBalance = prevDayPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
+    const expectedCash = openingBalance + cashIn - cashOut;
+
+    // Actual cash would come from physical count - for now return expected
+    const actualCash = expectedCash;
+    const variance = actualCash - expectedCash;
+
+    res.json({
+      date: targetDate.toISOString().split('T')[0],
+      expectedCash,
+      actualCash,
+      variance,
+      discrepancies: variance !== 0 ? [`Cash variance of ₱${Math.abs(variance).toLocaleString()}`] : []
+    });
+
+  } catch (error) {
+    console.error('Error fetching reconciliation:', error);
+    return res.status(500).json({ error: `Failed to fetch reconciliation: ${error.message}` });
+  }
+});
+
+// Record cash in transaction
+app.post("/api/cashbook/cash-in", authenticateToken, requirePermission('PAYMENTS_RECORD'), async (req, res) => {
+  try {
+    const { amount, description, category, notes } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Amount is required and must be greater than 0' });
+    }
+
+    // For now, cash in transactions are recorded as payments
+    // In a full implementation, you'd have a separate CashTransaction model
+    return res.status(501).json({ error: 'Cash in recording not yet fully implemented. Use payment recording instead.' });
+
+  } catch (error) {
+    console.error('Error recording cash in:', error);
+    return res.status(500).json({ error: `Failed to record cash in: ${error.message}` });
+  }
+});
+
+// Record cash out transaction
+app.post("/api/cashbook/cash-out", authenticateToken, requirePermission('PAYMENTS_RECORD'), async (req, res) => {
+  try {
+    const { amount, description, category, notes } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Amount is required and must be greater than 0' });
+    }
+
+    // For now, cash out transactions would be recorded as refunds or expenses
+    // In a full implementation, you'd have a separate CashTransaction model
+    return res.status(501).json({ error: 'Cash out recording not yet fully implemented. Use refund recording instead.' });
+
+  } catch (error) {
+    console.error('Error recording cash out:', error);
+    return res.status(500).json({ error: `Failed to record cash out: ${error.message}` });
   }
 });
 

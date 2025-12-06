@@ -85,6 +85,7 @@ export interface ReservationFormData {
   countryCode: string
   address: string
   idDocument: string
+  nationality?: string
 
   numGuest: number
   checkIn: string
@@ -103,6 +104,7 @@ export interface ValidationErrors {
   phone?: string
   address?: string
   idDocument?: string
+  nationality?: string
   numGuest?: string
   checkIn?: string
   checkOut?: string
