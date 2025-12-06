@@ -35,6 +35,14 @@
       >
         <i class="pi pi-chevron-right text-gray-600 w-3 h-3"></i>
       </div>
+      <button
+        @click="jumpToToday"
+        class="flex items-center gap-2 px-3 py-2 text-xs text-gray-600 bg-gray-50 outline outline-1 outline-gray-200 rounded-full transition-colors hover:bg-gray-100 hover:text-gray-800 cursor-pointer"
+        title="Jump to today"
+      >
+        <i class="pi pi-calendar text-gray-600 w-3 h-3"></i>
+        Today
+      </button>
     </div>
 
     <!-- Filter Dropdowns -->
@@ -184,6 +192,30 @@ function navigateDate(direction: number) {
   if (newIndex >= 0 && newIndex < props.availableDates.length) {
     const newDate = props.availableDates[newIndex]
     emit('dateChange', newDate.value)
+  }
+}
+
+function jumpToToday() {
+  const today = new Date().toISOString().split('T')[0]
+  const todayDate = props.availableDates.find(d => d.value === today)
+  
+  if (todayDate) {
+    emit('dateChange', todayDate.value)
+  } else {
+    // If today's date is not in available dates, find the closest date
+    const todayTimestamp = new Date(today).getTime()
+    let closestDate = props.availableDates[0]
+    let minDiff = Math.abs(new Date(closestDate.value).getTime() - todayTimestamp)
+    
+    props.availableDates.forEach(date => {
+      const diff = Math.abs(new Date(date.value).getTime() - todayTimestamp)
+      if (diff < minDiff) {
+        minDiff = diff
+        closestDate = date
+      }
+    })
+    
+    emit('dateChange', closestDate.value)
   }
 }
 

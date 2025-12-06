@@ -91,7 +91,7 @@
       </nav>
     </div>
 
-    <div class="w-full p-3 space-y-2 bg-gray-50">
+    <div v-if="canViewDocuments" class="w-full p-3 space-y-2 bg-gray-50">
       <p class="text-xs pl-4 font-bold text-gray-700">Documents</p>
       <nav class="flex flex-col space-y-1 mr-7">
         <a
@@ -196,7 +196,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useAuth } from '../composables/useAuth'
-import { hasPermission, hasRole } from '../utils/permissions'
+import { hasPermission, hasRole, isAdminOrManager } from '../utils/permissions'
 
 const { currentUser, logout } = useAuth()
 
@@ -206,6 +206,7 @@ const canViewGuests = computed(() => hasPermission(currentUser.value?.role, 'GUE
 const canViewHousekeeping = computed(() => hasRole(currentUser.value?.role, 'housekeeping', 'admin', 'manager'))
 const canViewAccounting = computed(() => hasRole(currentUser.value?.role, 'accounting', 'admin', 'manager'))
 const canViewReports = computed(() => hasPermission(currentUser.value?.role, 'REPORTS_VIEW_OCCUPANCY') || hasPermission(currentUser.value?.role, 'REPORTS_LIMITED_OVERVIEW'))
+const canViewDocuments = computed(() => isAdminOrManager(currentUser.value?.role))
 
 // Logout functionality removed - use header dropdown instead 💯
 </script>

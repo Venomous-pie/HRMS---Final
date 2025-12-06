@@ -29,7 +29,7 @@ const roomServiceStaff = [
 // Track staff assignments per day to avoid overwork
 class StaffScheduler {
   constructor() {
-    this.dailyAssignments = new Map(); // date -> staff -> shift count
+    this.dailyAssignments = new Map();
   }
 
   getKey(date, staffName) {
@@ -63,14 +63,12 @@ function getRandomStaff(staffList, count, date, excludeStaff = []) {
   );
   
   if (available.length < count) {
-    // If not enough staff available, use all available
     return available;
   }
   
   const shuffled = [...available].sort(() => 0.5 - Math.random());
   const selected = shuffled.slice(0, count);
   
-  // Record assignments
   selected.forEach(staff => scheduler.assignStaff(date, staff));
   
   return selected;
@@ -81,7 +79,8 @@ function formatStaffNames(staffArray) {
   if (staffArray.length === 0) return 'Available';
   if (staffArray.length === 1) return staffArray[0];
   if (staffArray.length === 2) return `${staffArray[0]} & ${staffArray[1]}`;
-  return staffArray.slice(0, 2).join(', ') + ' & ' + (staffArray.length - 2) + ' more';
+  const remaining = staffArray.length - 2;
+  return `${staffArray[0]}, ${staffArray[1]} & ${remaining} more`;
 }
 
 // Helper function to add days to date
@@ -99,22 +98,13 @@ function formatDate(date) {
   return `${year}-${month}-${day}`;
 }
 
-// Helper to check if date is weekend (Saturday or Sunday)
+// Helper to check if date is weekend
 function isWeekend(date) {
   const dayOfWeek = date.getUTCDay();
-  return dayOfWeek === 0 || dayOfWeek === 6; // 0 = Sunday, 6 = Saturday
+  return dayOfWeek === 0 || dayOfWeek === 6;
 }
 
-// Helper function to convert 24-hour format to 12-hour format
-function to12Hour(time24) {
-  const [hours, minutes] = time24.split(':').map(Number);
-  let hour12 = hours % 12;
-  if (hour12 === 0) hour12 = 12;
-  const ampm = hours < 12 ? 'AM' : 'PM';
-  return `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
-}
-
-// Generate Spa tasks for a single day
+// Generate Spa tasks - NO OVERNIGHT SPANS
 function generateSpaTasks(date) {
   const tasks = [];
   const spaRooms = [
@@ -127,74 +117,68 @@ function generateSpaTasks(date) {
   const isWeekendDay = isWeekend(date);
   
   spaRooms.forEach((roomName) => {
-    // Spa opens at 8am and closes at 8pm
-    // Extended hours on weekends: 8am - 9pm
-    const closingTime24 = isWeekendDay ? '21:00' : '20:00';
-    const closingTime = to12Hour(closingTime24);
+    // Spa operates 8am - 8pm (extended to 9pm on weekends)
+    const openTime = '08:00';
+    const closeTime = isWeekendDay ? '21:00' : '20:00';
     
-    // Overnight closed period (from closing time to 7:59 AM next day)
-    const nextDay = addDays(date, 1);
-    tasks.push({
-      title: 'Closed',
-      department: 'spa',
-      itemName: roomName,
-      startTime: closingTime,
-      endTime: '7:59 AM',
-      date: formatDate(nextDay),
-      status: 'closed',
-      assignedStaff: null,
-    });
-
-    // Morning shift: 8:00 AM to 12:59 PM (no overlap)
+    // Morning shift: 8am - 1pm (5 hours)
     const morningStaff = getRandomStaff(spaStaff, 2, date);
     tasks.push({
       title: formatStaffNames(morningStaff),
       department: 'spa',
       itemName: roomName,
-      startTime: '8:00 AM',
-      endTime: '12:59 PM',
+      startTime: openTime,
+      endTime: '13:00',
       date: formatDate(date),
       status: morningStaff.length === 2 ? 'scheduled' : 'available',
       assignedStaff: morningStaff.length > 0 ? morningStaff.join(', ') : null,
     });
 
-    // Afternoon/Evening shift: 1:00 PM to closing (no overlap)
+    // Afternoon/Evening shift: 1pm - close (7-8 hours)
     const eveningStaff = getRandomStaff(spaStaff, 2, date, morningStaff);
     tasks.push({
       title: formatStaffNames(eveningStaff),
       department: 'spa',
       itemName: roomName,
-      startTime: '1:00 PM',
-      endTime: closingTime,
+      startTime: '13:00',
+      endTime: closeTime,
       date: formatDate(date),
       status: eveningStaff.length === 2 ? 'scheduled' : 'available',
       assignedStaff: eveningStaff.length > 0 ? eveningStaff.join(', ') : null,
+    });
+
+    // Closed period: After closing until next morning (SAME DAY ENTRY)
+    // This represents "closed for the rest of the day"
+    tasks.push({
+      title: 'Closed',
+      department: 'spa',
+      itemName: roomName,
+      startTime: closeTime,
+      endTime: '23:59',
+      date: formatDate(date),
+      status: 'closed',
+      assignedStaff: null,
     });
   });
 
   return tasks;
 }
 
-// Generate Reception/Front Desk tasks for a single day
+// Generate Reception tasks - SPANS PROPERLY TO NEXT DAY
 function generateReceptionTasks(date) {
   const tasks = [];
 
-  // Front desk operates 24/7 with 3 shifts, 2 people per shift
-  // Day shift: 7:00 AM - 2:59 PM (8 hours)
-  // Evening shift: 3:00 PM - 10:59 PM (8 hours)
-  // Night shift: 11:00 PM - 6:59 AM (8 hours, spans to next day)
-
+  // Reception operates 24/7 with proper shift management
+  // All shifts stay within same day except night shift
   const shifts = [
-    { name: 'Day Shift', startTime: '7:00 AM', endTime: '2:59 PM' },
-    { name: 'Evening Shift', startTime: '3:00 PM', endTime: '10:59 PM' },
-    { name: 'Night Shift', startTime: '11:00 PM', endTime: '6:59 AM', spansNextDay: true },
+    { name: 'Morning', startTime: '07:00', endTime: '15:00', nextDay: false },
+    { name: 'Afternoon', startTime: '15:00', endTime: '23:00', nextDay: false },
+    { name: 'Night', startTime: '23:00', endTime: '07:00', nextDay: true },
   ];
 
-  shifts.forEach((shift) => {
-    // Use consistent staff rotation based on date and shift
+  shifts.forEach((shift, shiftIndex) => {
     const dateStr = formatDate(date);
     const staffSeed = dateStr.split('-').reduce((a, b) => parseInt(a) + parseInt(b), 0);
-    const shiftIndex = shifts.indexOf(shift);
     
     const index1 = (staffSeed + shiftIndex * 2) % receptionStaff.length;
     const index2 = (staffSeed + shiftIndex * 2 + 1) % receptionStaff.length;
@@ -202,10 +186,8 @@ function generateReceptionTasks(date) {
     const staff1 = receptionStaff[index1];
     const staff2 = receptionStaff[index2];
 
-    let taskDate = date;
-    if (shift.spansNextDay) {
-      taskDate = addDays(date, 1);
-    }
+    // Night shift goes to next day
+    const taskDate = shift.nextDay ? addDays(date, 1) : date;
 
     tasks.push({
       title: `${staff1} & ${staff2}`,
@@ -222,7 +204,7 @@ function generateReceptionTasks(date) {
   return tasks;
 }
 
-// Generate Restaurant tasks for a single day
+// Generate Restaurant tasks - NO OVERNIGHT SPANS
 function generateRestaurantTasks(date) {
   const tasks = [];
   const tables = [
@@ -233,45 +215,43 @@ function generateRestaurantTasks(date) {
   ];
 
   const isWeekendDay = isWeekend(date);
-  
-  // Busier on weekends, need more staff
   const staffPerShift = isWeekendDay ? 3 : 2;
 
   tables.forEach((tableName) => {
-    // Breakfast shift: 6:00 AM - 10:59 AM (no overlap)
+    // Breakfast: 6am - 11am
     const breakfastStaff = getRandomStaff(restaurantStaff, staffPerShift, date);
     tasks.push({
       title: formatStaffNames(breakfastStaff),
       department: 'restaurant',
       itemName: tableName,
-      startTime: '6:00 AM',
-      endTime: '10:59 AM',
+      startTime: '06:00',
+      endTime: '11:00',
       date: formatDate(date),
       status: breakfastStaff.length >= 2 ? 'scheduled' : 'understaffed',
       assignedStaff: breakfastStaff.length > 0 ? breakfastStaff.join(', ') : null,
     });
 
-    // Lunch shift: 11:00 AM - 3:59 PM (no overlap)
+    // Lunch: 11am - 4pm
     const lunchStaff = getRandomStaff(restaurantStaff, staffPerShift, date, breakfastStaff);
     tasks.push({
       title: formatStaffNames(lunchStaff),
       department: 'restaurant',
       itemName: tableName,
-      startTime: '11:00 AM',
-      endTime: '3:59 PM',
+      startTime: '11:00',
+      endTime: '16:00',
       date: formatDate(date),
       status: lunchStaff.length >= 2 ? 'scheduled' : 'understaffed',
       assignedStaff: lunchStaff.length > 0 ? lunchStaff.join(', ') : null,
     });
 
-    // Dinner shift: 4:00 PM - 9:59 PM (no overlap)
+    // Dinner: 4pm - 10pm (note: changed from 5pm to avoid gap)
     const dinnerStaff = getRandomStaff(restaurantStaff, staffPerShift + 1, date, [...breakfastStaff, ...lunchStaff]);
     tasks.push({
       title: formatStaffNames(dinnerStaff),
       department: 'restaurant',
       itemName: tableName,
-      startTime: '4:00 PM',
-      endTime: '9:59 PM',
+      startTime: '16:00',
+      endTime: '22:00',
       date: formatDate(date),
       status: dinnerStaff.length >= 2 ? 'scheduled' : 'understaffed',
       assignedStaff: dinnerStaff.length > 0 ? dinnerStaff.join(', ') : null,
@@ -281,32 +261,30 @@ function generateRestaurantTasks(date) {
   return tasks;
 }
 
-// Generate Bar tasks for a single day
+// Generate Bar tasks - PROPERLY HANDLE NEXT DAY
 function generateBarTasks(date) {
   const tasks = [];
   const isWeekendDay = isWeekend(date);
 
-  // Bar shifts
-  // Afternoon: 2:00 PM - 6:59 PM (early crowd)
-  // Evening: 7:00 PM - 11:59 PM (peak hours)
-  // Late night: 12:00 AM - 1:59 AM (weekend only)
-
-  const baseShifts = [
-    { startTime: '2:00 PM', endTime: '6:59 PM', staffCount: 2 },
-    { startTime: '7:00 PM', endTime: '11:59 PM', staffCount: 3 }, // Peak hours need more staff
+  // Bar opens 2pm, closes at midnight (2am on weekends)
+  const shifts = [
+    { startTime: '14:00', endTime: '19:00', staffCount: 2, nextDay: false },
+    { startTime: '19:00', endTime: '23:59', staffCount: 3, nextDay: false },
   ];
 
-  const shifts = isWeekendDay 
-    ? [...baseShifts, { startTime: '12:00 AM', endTime: '1:59 AM', staffCount: 2, spansNextDay: true }]
-    : baseShifts;
+  // Add late night shift only on weekends (spans to next day)
+  if (isWeekendDay) {
+    shifts.push({ 
+      startTime: '00:00', 
+      endTime: '02:00', 
+      staffCount: 2, 
+      nextDay: true 
+    });
+  }
 
   shifts.forEach((shift) => {
     const staff = getRandomStaff(barStaff, shift.staffCount, date);
-
-    let taskDate = date;
-    if (shift.spansNextDay) {
-      taskDate = addDays(date, 1);
-    }
+    const taskDate = shift.nextDay ? addDays(date, 1) : date;
 
     tasks.push({
       title: formatStaffNames(staff),
@@ -323,7 +301,7 @@ function generateBarTasks(date) {
   return tasks;
 }
 
-// Generate Room Service tasks for a single day
+// Generate Room Service tasks - PROPERLY HANDLE NEXT DAY
 function generateRoomServiceTasks(date) {
   const tasks = [];
   const roomGroups = [
@@ -334,41 +312,41 @@ function generateRoomServiceTasks(date) {
   ];
 
   roomGroups.forEach((roomGroup) => {
-    // Morning service: 6:00 AM - 1:59 PM (breakfast + lunch requests)
+    // Morning: 6am - 2pm
     const morningStaff = getRandomStaff(roomServiceStaff, 2, date);
     tasks.push({
       title: formatStaffNames(morningStaff),
       department: 'room-services',
       itemName: roomGroup,
-      startTime: '6:00 AM',
-      endTime: '1:59 PM',
+      startTime: '06:00',
+      endTime: '14:00',
       date: formatDate(date),
       status: morningStaff.length >= 2 ? 'scheduled' : 'understaffed',
       assignedStaff: morningStaff.length > 0 ? morningStaff.join(', ') : null,
     });
 
-    // Afternoon/Evening service: 2:00 PM - 9:59 PM (dinner + evening requests)
+    // Afternoon/Evening: 2pm - 10pm
     const eveningStaff = getRandomStaff(roomServiceStaff, 2, date, morningStaff);
     tasks.push({
       title: formatStaffNames(eveningStaff),
       department: 'room-services',
       itemName: roomGroup,
-      startTime: '2:00 PM',
-      endTime: '9:59 PM',
+      startTime: '14:00',
+      endTime: '22:00',
       date: formatDate(date),
       status: eveningStaff.length >= 2 ? 'scheduled' : 'understaffed',
       assignedStaff: eveningStaff.length > 0 ? eveningStaff.join(', ') : null,
     });
 
-    // Night service: 10:00 PM - 5:59 AM (limited staff, emergency requests only)
+    // Night: 10pm - 6am (NEXT DAY)
     const nightStaff = getRandomStaff(roomServiceStaff, 1, date, [...morningStaff, ...eveningStaff]);
     const nextDay = addDays(date, 1);
     tasks.push({
       title: formatStaffNames(nightStaff),
       department: 'room-services',
       itemName: roomGroup,
-      startTime: '10:00 PM',
-      endTime: '5:59 AM',
+      startTime: '22:00',
+      endTime: '06:00',
       date: formatDate(nextDay),
       status: nightStaff.length >= 1 ? 'scheduled' : 'available',
       assignedStaff: nightStaff.length > 0 ? nightStaff.join(', ') : null,
@@ -388,7 +366,6 @@ export async function seedTasks() {
     const existingTasks = await Task.count();
     console.log(`📊 Existing tasks: ${existingTasks}`);
 
-    // Generate tasks for 90 days (3 months is more realistic for initial scheduling)
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
     const daysToGenerate = 90;
@@ -399,8 +376,6 @@ export async function seedTasks() {
 
     for (let i = 0; i < daysToGenerate; i++) {
       const currentDate = addDays(today, i);
-      
-      // Reset daily staff assignments for each new day
       scheduler.reset();
 
       allTasks.push(...generateSpaTasks(currentDate));
@@ -424,7 +399,6 @@ export async function seedTasks() {
 
     console.log(`✅ Created ${createdTasks.length} task records`);
 
-    // Generate statistics
     const departmentCounts = {};
     const statusCounts = {};
 
