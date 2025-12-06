@@ -99,7 +99,12 @@ const fetchPayments = async () => {
   paymentsLoading.value = true
   try {
     const data = await accountingService.getPayments()
-    payments.value = data
+    // Map backend data format to frontend format
+    payments.value = data.map(payment => ({
+      ...payment,
+      Guest: payment.Guest || undefined,
+      Reservation: payment.Reservation || undefined
+    }))
   } catch (error) {
     console.error('Error fetching payments:', error)
   } finally {
@@ -111,7 +116,29 @@ const fetchInvoices = async () => {
   invoicesLoading.value = true
   try {
     const data = await accountingService.getInvoices()
-    invoices.value = data
+    // Map backend data format to frontend format
+    invoices.value = data.map(invoice => ({
+      ...invoice,
+      Guest: invoice.Guest || undefined,
+      Reservation: invoice.Reservation || undefined
+    }))
+    
+    // If no invoices exist, try to generate them from existing reservations
+    if (data.length === 0) {
+      try {
+        await accountingService.generateInvoices()
+        // Refetch invoices after generation
+        const newData = await accountingService.getInvoices()
+        invoices.value = newData.map(invoice => ({
+          ...invoice,
+          Guest: invoice.Guest || undefined,
+          Reservation: invoice.Reservation || undefined
+        }))
+      } catch (error) {
+        console.error('Error generating invoices:', error)
+        // Don't show error to user, just log it
+      }
+    }
   } catch (error) {
     console.error('Error fetching invoices:', error)
   } finally {

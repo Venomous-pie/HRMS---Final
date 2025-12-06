@@ -24,14 +24,26 @@ const Task = TaskModel(sequelize);
 
 // Associations
 Guest.hasMany(Reservation);
+Guest.hasMany(Payment);
+Guest.hasMany(Invoice);
 
 Reservation.belongsTo(Guest);
 Reservation.belongsTo(Room);
+Reservation.hasMany(Payment);
+Reservation.hasMany(Invoice);
 
 Room.hasMany(Reservation);
 Room.belongsTo(RoomType);
 
 RoomType.hasMany(Room);
+
+Payment.belongsTo(Guest);
+Payment.belongsTo(Reservation);
+Payment.belongsTo(Invoice);
+
+Invoice.belongsTo(Guest);
+Invoice.belongsTo(Reservation);
+Invoice.hasMany(Payment);
 
 User.belongsTo(User, { as: 'Creator', foreignKey: 'createdBy' });
 User.hasMany(User, { as: 'CreatedUsers', foreignKey: 'createdBy' });

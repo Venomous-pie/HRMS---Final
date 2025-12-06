@@ -968,7 +968,7 @@ app.get("/api/reservations", authenticateToken, requireAnyPermission(['RESERVATI
       type: "standard", // Default type since not in backend model yet
       amount: reservation.totalPrice || 0,
       balance: 0, // Calculate or set default
-      source: "direct", // Default source
+      source: reservation.bookingSource || "Direct Booking", // Use bookingSource from model
       orders: 0, // Default orders
       bookingDate: reservation.createdAt,
       notes: reservation.specialRequest || "",
@@ -1584,6 +1584,257 @@ app.get("/api/billing/generate/:reservationId", authenticateToken, async (req, r
 
   } catch (error) {
     res.status(500).json({ error: `Failed to generate bill: ${error.message}` });
+  }
+});
+
+// Get all payments
+app.get("/api/payments", authenticateToken, requireAnyPermission(['PAYMENTS_VIEW_ALL', 'PAYMENTS_RECORD']), async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const where = {};
+    
+    // Filter by date range if provided
+    if (startDate && endDate) {
+      where.paymentDate = {
+        [Op.between]: [new Date(startDate), new Date(endDate)]
+      }
+    }
+    
+    const payments = await Payment.findAll({
+      where,
+      include: [
+        {
+          model: Guest,
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        },
+        {
+          model: Reservation,
+          attributes: ['id', 'checkIn', 'checkOut'],
+          include: [{
+            model: Room,
+            attributes: ['roomNumber']
+          }]
+        }
+      ],
+      order: [['paymentDate', 'DESC'], ['createdAt', 'DESC']]
+    });
+
+    const transformedPayments = payments.map((payment) => ({
+      id: payment.id,
+      paymentNumber: payment.paymentNumber,
+      reservationId: payment.reservationId,
+      guestId: payment.guestId,
+      invoiceId: payment.invoiceId,
+      amount: parseFloat(payment.amount),
+      currency: payment.currency || 'USD',
+      paymentMethod: payment.paymentMethod,
+      status: payment.status,
+      paymentDate: payment.paymentDate || payment.createdAt,
+      createdAt: payment.createdAt,
+      updatedAt: payment.updatedAt,
+      Guest: payment.Guest ? {
+        firstName: payment.Guest.firstName,
+        lastName: payment.Guest.lastName
+      } : undefined,
+      Reservation: payment.Reservation ? {
+        room: payment.Reservation.Room?.roomNumber || 'N/A',
+        checkIn: payment.Reservation.checkIn,
+        checkOut: payment.Reservation.checkOut
+      } : undefined
+    }));
+
+    return res.json(transformedPayments);
+  } catch (error) {
+    console.error('Error fetching payments:', error);
+    return res.status(500).json({ error: `Failed to fetch payments: ${error.message}` });
+  }
+});
+
+// Get all invoices
+app.get("/api/invoices", authenticateToken, requireAnyPermission(['PAYMENTS_VIEW_ALL', 'PAYMENTS_RECORD']), async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const where = {};
+    
+    // Filter by date range if provided
+    if (startDate && endDate) {
+      where.issueDate = {
+        [Op.between]: [new Date(startDate), new Date(endDate)]
+      }
+    }
+    
+    const invoices = await Invoice.findAll({
+      where,
+      include: [
+        {
+          model: Guest,
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        },
+        {
+          model: Reservation,
+          attributes: ['id'],
+          include: [{
+            model: Room,
+            attributes: ['roomNumber']
+          }]
+        }
+      ],
+      order: [['issueDate', 'DESC'], ['createdAt', 'DESC']]
+    });
+
+    const transformedInvoices = invoices.map((invoice) => {
+      const balanceAmount = parseFloat(invoice.totalAmount) - parseFloat(invoice.paidAmount || 0);
+      
+      return {
+        id: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        reservationId: invoice.reservationId,
+        guestId: invoice.guestId,
+        issueDate: invoice.issueDate,
+        dueDate: invoice.dueDate,
+        subtotal: parseFloat(invoice.subtotal),
+        taxAmount: parseFloat(invoice.taxAmount),
+        taxRate: parseFloat(invoice.taxRate),
+        discountAmount: parseFloat(invoice.discountAmount),
+        totalAmount: parseFloat(invoice.totalAmount),
+        paidAmount: parseFloat(invoice.paidAmount || 0),
+        balanceAmount: balanceAmount,
+        status: invoice.status,
+        paymentStatus: invoice.paymentStatus,
+        currency: invoice.currency || 'USD',
+        createdAt: invoice.createdAt,
+        updatedAt: invoice.updatedAt,
+        Guest: invoice.Guest ? {
+          firstName: invoice.Guest.firstName,
+          lastName: invoice.Guest.lastName
+        } : undefined,
+        Reservation: invoice.Reservation ? {
+          room: invoice.Reservation.Room?.roomNumber || 'N/A'
+        } : undefined
+      };
+    });
+
+    return res.json(transformedInvoices);
+  } catch (error) {
+    console.error('Error fetching invoices:', error);
+    return res.status(500).json({ error: `Failed to fetch invoices: ${error.message}` });
+  }
+});
+
+// Generate invoices for reservations that don't have invoices
+app.post("/api/invoices/generate", authenticateToken, requireAnyPermission(['PAYMENTS_VIEW_ALL', 'PAYMENTS_RECORD']), async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    // Find reservations that don't have invoices and are not cancelled
+    const reservationsWithoutInvoices = await Reservation.findAll({
+      where: {
+        status: { [Op.in]: ['confirmed', 'checkedIn', 'checkedOut'] }
+      },
+      include: [
+        {
+          model: Guest,
+          attributes: ['id', 'firstName', 'lastName']
+        },
+        {
+          model: Room,
+          attributes: ['id', 'roomNumber']
+        }
+      ],
+      transaction: t
+    });
+
+    const existingInvoices = await Invoice.findAll({
+      attributes: ['reservationId'],
+      transaction: t
+    });
+
+    const reservationIdsWithInvoices = new Set(existingInvoices.map(inv => inv.reservationId));
+    
+    const reservationsToInvoice = reservationsWithoutInvoices.filter(
+      res => !reservationIdsWithInvoices.has(res.id)
+    );
+
+    const createdInvoices = [];
+
+    for (const reservation of reservationsToInvoice) {
+      // Calculate amounts
+      const subtotal = parseFloat(reservation.totalPrice) || 0;
+      const taxRate = 0.12;
+      const taxAmount = subtotal * taxRate;
+      const totalAmount = subtotal + taxAmount;
+
+      // Generate invoice number
+      const invoiceNumber = `INV-${reservation.id}-${Date.now()}`;
+      
+      // Set issue date to check-in date or today
+      const issueDateObj = reservation.checkIn ? new Date(reservation.checkIn) : new Date();
+      const issueDate = issueDateObj.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      const dueDateObj = new Date(issueDateObj);
+      dueDateObj.setDate(dueDateObj.getDate() + 30); // 30 days from issue date
+      const dueDate = dueDateObj.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+
+      // Check if there are any payments for this reservation
+      const payments = await Payment.findAll({
+        where: { reservationId: reservation.id },
+        transaction: t
+      });
+
+      const paidAmount = payments
+        .filter(p => p.status === 'completed')
+        .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+
+      // Determine status based on payment
+      let status = 'sent';
+      let paymentStatus = 'unpaid';
+      if (paidAmount >= totalAmount) {
+        status = 'paid';
+        paymentStatus = 'paid';
+      } else if (paidAmount > 0) {
+        paymentStatus = 'partial';
+      }
+
+      // Check if overdue
+      if (new Date() > dueDate && paymentStatus !== 'paid') {
+        status = 'overdue';
+      }
+
+      const invoice = await Invoice.create({
+        reservationId: reservation.id,
+        guestId: reservation.GuestId,
+        invoiceNumber,
+        issueDate,
+        dueDate,
+        subtotal,
+        taxAmount,
+        taxRate,
+        discountAmount: 0,
+        totalAmount,
+        paidAmount,
+        status,
+        paymentStatus,
+        currency: 'PHP'
+      }, { transaction: t });
+
+      createdInvoices.push({
+        id: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        reservationId: reservation.id
+      });
+    }
+
+    await t.commit();
+
+    res.json({
+      message: `Generated ${createdInvoices.length} invoice(s)`,
+      invoices: createdInvoices
+    });
+
+  } catch (error) {
+    await t.rollback();
+    console.error('Error generating invoices:', error);
+    return res.status(500).json({ error: `Failed to generate invoices: ${error.message}` });
   }
 });
 

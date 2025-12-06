@@ -164,6 +164,18 @@ class AccountingService {
       return []
     }
   }
+
+  // Generate invoices for reservations that don't have invoices
+  async generateInvoices(): Promise<{ message: string; invoices: Array<{ id: number; invoiceNumber: string; reservationId: number }> }> {
+    try {
+      return await apiFetch<{ message: string; invoices: Array<{ id: number; invoiceNumber: string; reservationId: number }> }>('/invoices/generate', {
+        method: 'POST'
+      })
+    } catch (error) {
+      console.error('Error generating invoices:', error)
+      throw error
+    }
+  }
 }
 
 export const accountingService = new AccountingService()

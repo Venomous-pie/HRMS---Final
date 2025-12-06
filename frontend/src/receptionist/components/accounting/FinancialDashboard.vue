@@ -3,16 +3,19 @@
     <div class="flex items-center justify-between mb-4">
       <h3 class="text-lg font-semibold text-gray-900">Financial Dashboard</h3>
       <div class="flex items-center gap-2">
-        <select
-          v-model="selectedPeriod"
-          @change="handlePeriodChange"
-          class="text-xs px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-        >
-          <option value="all">All Time</option>
-          <option value="monthly">Monthly</option>
-          <option value="weekly">Weekly</option>
-          <option value="daily">Daily</option>
-        </select>
+        <div class="relative bg-gray-50 outline outline-1 outline-gray-200 rounded-full text-xs text-gray-700 w-full">
+          <select
+            v-model="selectedPeriod"
+            @change="handlePeriodChange"
+            class="w-full bg-transparent border-none outline-none text-xs px-3 py-2 pr-8 appearance-none cursor-pointer"
+          >
+            <option value="all">All Time</option>
+            <option value="monthly">Monthly</option>
+            <option value="weekly">Weekly</option>
+            <option value="daily">Daily</option>
+          </select>
+          <i class="pi pi-chevron-down absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none"></i>
+        </div>
       </div>
     </div>
 
@@ -164,8 +167,21 @@ const calculateSourceRevenue = (source: BookingSourceStats): number => {
 }
 
 const formatDate = (dateStr: string): string => {
+  if (!dateStr) return 'N/A'
+  
+  // Check if it's already a month abbreviation (3-letter month names)
+  const monthAbbreviations = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  if (monthAbbreviations.includes(dateStr)) {
+    // If it's just a month abbreviation, return it with current year
+    return `${dateStr} ${new Date().getFullYear()}`
+  }
+  
   try {
     const date = new Date(dateStr)
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      return dateStr // Return original string if invalid
+    }
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
   } catch {
     return dateStr
